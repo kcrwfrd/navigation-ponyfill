@@ -26,7 +26,7 @@ export default async function UserPage({
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6">
+      <main className="max-w-lg mx-auto px-4 py-4">
         <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
           <div className="flex items-center gap-4">
             <UserAvatar initials={user.avatar} size="lg" />
