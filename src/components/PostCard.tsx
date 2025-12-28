@@ -1,12 +1,12 @@
-import Link from "next/link";
-import { Post, getUser } from "@/lib/data";
-import { UserAvatar } from "./UserAvatar";
-import { PostSkeleton } from "./PostSkeleton";
+import Link from 'next/link'
+import { Post, getUser } from '@/lib/data'
+import { UserAvatar } from './UserAvatar'
+import { PostSkeleton } from './PostSkeleton'
 
 export function PostCard({ post }: { post: Post }) {
-  const user = getUser(post.userId);
+  const user = getUser(post.userId)
 
-  if (!user) return null;
+  if (!user) return null
 
   return (
     <article className="p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
@@ -34,5 +34,5 @@ export function PostCard({ post }: { post: Post }) {
         <PostSkeleton lines={3} />
       </Link>
     </article>
-  );
+  )
 }
