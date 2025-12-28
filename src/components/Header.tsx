@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BackButton } from './BackButton'
+import { Navigation } from './Navigation'
 
 export function Header() {
   const pathname = usePathname()
@@ -11,7 +12,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
       <nav className="max-w-lg mx-auto px-4 py-2">
-        <ul className="flex flex-row-reverse items-center justify-between min-h-9">
+        <ul className="flex flex-row-reverse items-center justify-between gap-3 min-h-9">
           <li>
             <Link
               href="/"
@@ -24,11 +25,12 @@ export function Header() {
               Home
             </Link>
           </li>
-          {!isHome && (
-            <li>
-              <BackButton />
-            </li>
-          )}
+          <li className="w-full">
+            <Navigation />
+          </li>
+          <li className="w-9 shrink-0">
+            {!isHome && <BackButton fallbackUrl="/" />}
+          </li>
         </ul>
       </nav>
     </header>
