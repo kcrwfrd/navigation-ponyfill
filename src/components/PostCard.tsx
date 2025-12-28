@@ -33,12 +33,6 @@ export function PostCard({ post }: { post: Post }) {
         </h2>
         <PostSkeleton lines={3} />
       </Link>
-
-      <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-        <time className="text-xs text-zinc-500 dark:text-zinc-400">
-          {post.createdAt}
-        </time>
-      </div>
     </article>
   );
 }
