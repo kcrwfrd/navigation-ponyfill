@@ -1,15 +1,15 @@
 export function UserAvatar({
   initials,
-  size = "md",
+  size = 'md',
 }: {
-  initials: string;
-  size?: "sm" | "md" | "lg";
+  initials: string
+  size?: 'sm' | 'md' | 'lg'
 }) {
   const sizeClasses = {
-    sm: "w-8 h-8 text-xs",
-    md: "w-10 h-10 text-sm",
-    lg: "w-16 h-16 text-xl",
-  };
+    sm: 'w-8 h-8 text-xs',
+    md: 'w-10 h-10 text-sm',
+    lg: 'w-16 h-16 text-xl',
+  }
 
   return (
     <div
@@ -17,5 +17,5 @@ export function UserAvatar({
     >
       {initials}
     </div>
-  );
+  )
 }

@@ -1,22 +1,22 @@
-import { notFound } from "next/navigation";
-import { getPost } from "@/lib/data";
-import { PostCard } from "@/components/PostCard";
+import { notFound } from 'next/navigation'
+import { getPost } from '@/lib/data'
+import { PostCard } from '@/components/PostCard'
 
 export default async function PostPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }) {
-  const { id } = await params;
-  const post = getPost(id);
+  const { id } = await params
+  const post = getPost(id)
 
   if (!post) {
-    notFound();
+    notFound()
   }
 
   return (
     <main className="max-w-lg mx-auto px-4 py-4">
       <PostCard post={post} />
     </main>
-  );
+  )
 }

@@ -1,21 +1,21 @@
-import { notFound } from "next/navigation";
-import { getUser, getUserPosts } from "@/lib/data";
-import { UserAvatar } from "@/components/UserAvatar";
-import { PostCard } from "@/components/PostCard";
+import { notFound } from 'next/navigation'
+import { getUser, getUserPosts } from '@/lib/data'
+import { UserAvatar } from '@/components/UserAvatar'
+import { PostCard } from '@/components/PostCard'
 
 export default async function UserPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }) {
-  const { id } = await params;
-  const user = getUser(id);
+  const { id } = await params
+  const user = getUser(id)
 
   if (!user) {
-    notFound();
+    notFound()
   }
 
-  const userPosts = getUserPosts(id);
+  const userPosts = getUserPosts(id)
 
   return (
     <main className="max-w-lg mx-auto px-4 py-4">
@@ -45,5 +45,5 @@ export default async function UserPage({
         )}
       </div>
     </main>
-  );
+  )
 }
