@@ -1,0 +1,18 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "dev:lib": "npm run dev --workspace=packages/navigation-ponyfill",
+    "dev:next": "npm run dev --workspace=examples/next",
+    "build": "npm run build --workspace=packages/navigation-ponyfill",
+    "lint": "eslint",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

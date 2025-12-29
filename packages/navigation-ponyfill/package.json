@@ -1,0 +1,48 @@
+{
+  "name": "navigation-ponyfill",
+  "version": "0.0.0",
+  "description": "A ponyfill (polyfill) for the browser Navigation API",
+  "keywords": [
+    "navigation",
+    "navigation-api",
+    "ponyfill",
+    "polyfill",
+    "history",
+    "router"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Kevin Crawford",
+    "url": "https://kcrwfrd.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kcrwfrd/navigation-ponyfill.git",
+    "directory": "packages/navigation-ponyfill"
+  },
+  "bugs": {
+    "url": "https://github.com/kcrwfrd/navigation-ponyfill/issues"
+  },
+  "homepage": "https://github.com/kcrwfrd/navigation-ponyfill",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "sideEffects": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
