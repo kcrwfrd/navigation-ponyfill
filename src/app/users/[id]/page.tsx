@@ -1,7 +1,23 @@
+import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getUser, getUserPosts } from '@/lib/data'
 import { UserAvatar } from '@/components/UserAvatar'
 import { PostCard } from '@/components/PostCard'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const user = getUser(id)
+
+  if (!user) {
+    return { title: 'User Not Found' }
+  }
+
+  return { title: `@${user.username}` }
+}
 
 export default async function UserPage({
   params,
