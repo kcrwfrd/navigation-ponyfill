@@ -67,7 +67,7 @@ export class Navigation extends EventTarget {
         },
       }
 
-      // @todo perhaps we can retrieve this entry from the entries() array instaed of instantiating here?
+      // @todo perhaps we can retrieve this entry from the entries() array instead of instantiating here?
       const currentEntry = new NavigationHistoryEntry(getCurrentUrl())
 
       ogReplaceState(state, _unused, url)
