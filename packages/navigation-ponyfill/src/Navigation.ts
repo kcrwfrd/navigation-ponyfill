@@ -30,10 +30,12 @@ export class Navigation extends EventTarget {
       _unused: string,
       url?: string | URL | null,
     ) {
+      assertStateIsObjectOrNullish(ogState)
+
       const previousPath = getCurrentUrl()
 
       const state = {
-        ...(ogState || {}),
+        ...(ogState ?? {}),
         [Navigation.KEY]: {
           canGoBack: true,
           previousPath,
@@ -58,8 +60,10 @@ export class Navigation extends EventTarget {
       _unused: string,
       url?: string | URL | null,
     ) {
+      assertStateIsObjectOrNullish(ogState)
+
       const state = {
-        ...(ogState || {}),
+        ...(ogState ?? {}),
         [Navigation.KEY]: {
           canGoBack: self.#history.state?.[Navigation.KEY]?.canGoBack ?? false,
           previousPath:
@@ -104,4 +108,16 @@ function getCurrentUrl() {
   }
 
   return `${window.location.pathname}${window.location.search}${window.location.hash}`
+}
+
+/**
+ * We cannot properly merge state with navigation-ponyfill's state
+ * if it's not an object (e.g. boolean, number, string, etc.)
+ */
+function assertStateIsObjectOrNullish(state: unknown): void {
+  if (state != null && typeof state !== 'object') {
+    throw new TypeError(
+      `history state must be an object or nullish, received ${typeof state}`,
+    )
+  }
 }
