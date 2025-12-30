@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useSyncExternalStore,
   type PropsWithChildren,
@@ -16,6 +15,11 @@ interface NavigationContextType {
   back: (fallbackUrl?: string) => void
   canGoBack: boolean
   previousPath: string | null
+  /**
+   * Whether the navigation state has been hydrated on the client.
+   * This is `false` during SSR and becomes `true` once the client has initialized.
+   * It allows us to not render UI until the client is ready, so we can avoid flickering.
+   */
   ready: boolean
 }
 export const NavigationContext = createContext<NavigationContextType | null>(
@@ -77,9 +81,6 @@ const subscribe = (callback: () => void) => {
   }
 }
 
-/**
- * @todo add support for ready
- */
 interface NavigationState {
   canGoBack: boolean
   previousPath: string | null
@@ -89,17 +90,32 @@ interface NavigationState {
 const SERVER_SNAPSHOT: NavigationState = {
   canGoBack: false,
   previousPath: null,
-  ready: false, // we may wish to simply hide UI until hydration has completed
+  ready: false,
 }
 
 /**
  * getSnapshot must return a cached value.
  * @see https://react.dev/reference/react/useSyncExternalStore#im-getting-an-error-the-result-of-getsnapshot-should-be-cached
- * @todo use reselect so we can include derived data (for the ready param)
  */
-const getSnapshot = () =>
-  window.history.state?.[Navigation.KEY] ?? SERVER_SNAPSHOT
-const getServerSnapshot = () => SERVER_SNAPSHOT
+let cachedSnapshot: NavigationState | null = null
+let cachedRawState: unknown = null
+
+const getSnapshot = (): NavigationState => {
+  const rawState = window.history.state?.[Navigation.KEY]
+
+  if (rawState !== cachedRawState) {
+    cachedRawState = rawState
+    cachedSnapshot = {
+      canGoBack: rawState?.canGoBack ?? false,
+      previousPath: rawState?.previousPath ?? null,
+      ready: true,
+    }
+  }
+
+  return cachedSnapshot!
+}
+
+const getServerSnapshot = (): NavigationState => SERVER_SNAPSHOT
 
 function useSyncHistoryState(): NavigationState {
   return useSyncExternalStore<NavigationState>(
