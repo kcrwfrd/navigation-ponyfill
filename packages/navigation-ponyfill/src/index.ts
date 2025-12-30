@@ -10,3 +10,6 @@ export const navigation = new Navigation(
 )
 
 export { Navigation }
+export { NavigationCurrentEntryChangeEvent } from './NavigationCurrentEntryChangeEvent'
+export { NavigationHistoryEntry } from './NavigationHistoryEntry'
+export type { NavigationType } from './NavigationType'
