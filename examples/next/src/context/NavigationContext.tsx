@@ -4,97 +4,30 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useSyncExternalStore,
   type PropsWithChildren,
 } from 'react'
+import { navigation, Navigation } from 'navigation-ponyfill'
 import { useRouter } from 'next/navigation'
 
 interface NavigationContextType {
   back: (fallbackUrl?: string) => void
   canGoBack: boolean
   previousPath: string | null
+  /**
+   * Whether the navigation state has been hydrated on the client.
+   * This is `false` during SSR and becomes `true` once the client has initialized.
+   * It allows us to not render UI until the client is ready, so we can avoid flickering.
+   */
   ready: boolean
 }
 export const NavigationContext = createContext<NavigationContextType | null>(
   null,
 )
-const KEY = '__NAVIGATION'
 
 export const NavigationProvider = ({ children }: PropsWithChildren) => {
   const router = useRouter()
-
-  useEffect(() => {
-    const ogPushState = window.history.pushState.bind(window.history)
-    const ogReplaceState = window.history.replaceState.bind(window.history)
-
-    /**
-     * Patch Next.js's patch of pushState
-     * @see https://github.com/vercel/next.js/blob/d440c75650c79b8be450df5fd434afbfe230506a/packages/next/src/client/components/app-router.tsx#L298-L401
-     */
-    window.history.pushState = function pushState(
-      ogState: any,
-      _unused: string,
-      url?: string | URL | null,
-    ) {
-      const previousPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
-
-      const state = {
-        ...(ogState || {}),
-        [KEY]: {
-          canGoBack: true,
-          previousPath,
-        },
-      }
-
-      ogPushState(state, _unused, url)
-
-      /**
-       * Unfortunately, whether we dispatch a custom event and subscribe to it
-       * with useSyncExternalStore, or simply update state directly here, we will
-       * get the following error:
-       *
-       * "useInsertionEffect must not schedule updates"
-       *
-       * This is due to Next.js's router calling pushState in a useInsertionEffect:
-       * @see https://github.com/vercel/next.js/blob/4fa7d80eb9183273cc531623bb45606942b438d6/packages/next/src/client/components/app-router.tsx#L91
-       *
-       * queueMicrotask avoids this error, but let's investigate further.
-       */
-      queueMicrotask(() => {
-        window.dispatchEvent(
-          new CustomEvent('pushState', { detail: { state, url } }),
-        )
-      })
-    }
-
-    window.history.replaceState = function replaceState(
-      ogState: any,
-      _unused: string,
-      url?: string | URL | null,
-    ) {
-      const state = {
-        ...(ogState || {}),
-        [KEY]: {
-          canGoBack: window.history.state?.[KEY]?.canGoBack ?? false,
-          previousPath: window.history.state?.[KEY]?.previousPath ?? null,
-        },
-      }
-
-      ogReplaceState(state, _unused, url)
-
-      queueMicrotask(() => {
-        window.dispatchEvent(
-          new CustomEvent('replaceState', { detail: { state, url } }),
-        )
-      })
-    }
-
-    return () => {
-      window.history.pushState = ogPushState
-    }
-  }, [])
 
   const { canGoBack, previousPath, ready } = useSyncHistoryState()
 
@@ -126,20 +59,28 @@ export const useNavigation = () => {
 }
 
 const subscribe = (callback: () => void) => {
-  window.addEventListener('popstate', callback)
-  window.addEventListener('pushState', callback)
-  window.addEventListener('replaceState', callback)
+  /**
+   * Without the use of queueMicrotask, we will get the following error:
+   *
+   * "useInsertionEffect must not schedule updates"
+   *
+   * This is due to Next.js's router calling pushState in a useInsertionEffect:
+   * @see https://github.com/vercel/next.js/blob/4fa7d80eb9183273cc531623bb45606942b438d6/packages/next/src/client/components/app-router.tsx#L91
+   *
+   * @todo let's investigate further. This doesn't feel great.
+   *
+   * Surely Next.js's router gets around this somehow in order to support
+   * usePathname() and useSearchParams()
+   */
+  const fn = () => queueMicrotask(callback)
+
+  navigation.addEventListener('currententrychange', fn)
 
   return () => {
-    window.removeEventListener('popstate', callback)
-    window.removeEventListener('pushState', callback)
-    window.removeEventListener('replaceState', callback)
+    navigation.removeEventListener('currententrychange', fn)
   }
 }
 
-/**
- * @todo add support for ready
- */
 interface NavigationState {
   canGoBack: boolean
   previousPath: string | null
@@ -149,14 +90,32 @@ interface NavigationState {
 const SERVER_SNAPSHOT: NavigationState = {
   canGoBack: false,
   previousPath: null,
-  ready: false, // we may wish to simply hide UI until hydration has completed
+  ready: false,
 }
 
 /**
- * @todo use reselect so we can include derived data (for the ready param)
+ * getSnapshot must return a cached value.
+ * @see https://react.dev/reference/react/useSyncExternalStore#im-getting-an-error-the-result-of-getsnapshot-should-be-cached
  */
-const getSnapshot = () => window.history.state?.[KEY] ?? SERVER_SNAPSHOT
-const getServerSnapshot = () => SERVER_SNAPSHOT
+let cachedSnapshot: NavigationState | null = null
+let cachedRawState: unknown = null
+
+const getSnapshot = (): NavigationState => {
+  const rawState = window.history.state?.[Navigation.KEY]
+
+  if (rawState !== cachedRawState) {
+    cachedRawState = rawState
+    cachedSnapshot = {
+      canGoBack: rawState?.canGoBack ?? false,
+      previousPath: rawState?.previousPath ?? null,
+      ready: true,
+    }
+  }
+
+  return cachedSnapshot!
+}
+
+const getServerSnapshot = (): NavigationState => SERVER_SNAPSHOT
 
 function useSyncHistoryState(): NavigationState {
   return useSyncExternalStore<NavigationState>(
