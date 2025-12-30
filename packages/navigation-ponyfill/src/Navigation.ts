@@ -11,13 +11,22 @@ export class Navigation extends EventTarget {
   static readonly KEY = '__NAVIGATION_PONYFILL'
   #history: History | HistoryShim
 
+  #ogPushState: History['pushState']
+  #ogReplaceState: History['replaceState']
+
+  #pushState: History['pushState']
+  #replaceState: History['replaceState']
+
+  #popstateHandler: ((event: PopStateEvent) => void) | null = null
+
   constructor(history: History | HistoryShim) {
     super()
 
     this.#history = history
-
-    const ogPushState = history.pushState.bind(history)
-    const ogReplaceState = history.replaceState.bind(history)
+    this.#ogPushState = history.pushState
+    this.#ogReplaceState = history.replaceState
+    this.#pushState = history.pushState.bind(history)
+    this.#replaceState = history.replaceState.bind(history)
 
     const self = this
 
@@ -45,7 +54,7 @@ export class Navigation extends EventTarget {
       // @todo use this.currentEntry instead of instantiating here
       const currentEntry = new NavigationHistoryEntry(previousPath)
 
-      ogPushState(state, _unused, url)
+      self.#pushState(state, _unused, url)
 
       self.dispatchEvent(
         new NavigationCurrentEntryChangeEvent('currententrychange', {
@@ -74,7 +83,7 @@ export class Navigation extends EventTarget {
       // @todo perhaps we can retrieve this entry from the entries() array instead of instantiating here?
       const currentEntry = new NavigationHistoryEntry(getCurrentUrl())
 
-      ogReplaceState(state, _unused, url)
+      self.#replaceState(state, _unused, url)
 
       self.dispatchEvent(
         new NavigationCurrentEntryChangeEvent('currententrychange', {
@@ -85,20 +94,35 @@ export class Navigation extends EventTarget {
     }
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('popstate', (event) => {
-        self.dispatchEvent(
+      this.#popstateHandler = () => {
+        this.dispatchEvent(
           new NavigationCurrentEntryChangeEvent('currententrychange', {
             // @todo how can we determine the prior entry at this time?
             from: new NavigationHistoryEntry(null),
             navigationType: 'traverse',
           }),
         )
-      })
+      }
+      window.addEventListener('popstate', this.#popstateHandler)
     }
   }
 
   get canGoBack() {
     return this.#history.state?.[Navigation.KEY]?.canGoBack ?? false
+  }
+
+  /**
+   * Restores the original history methods and removes event listeners.
+   * Useful for testing or when the ponyfill is no longer needed.
+   */
+  destroy() {
+    this.#history.pushState = this.#ogPushState
+    this.#history.replaceState = this.#ogReplaceState
+
+    if (this.#popstateHandler) {
+      window.removeEventListener('popstate', this.#popstateHandler)
+      this.#popstateHandler = null
+    }
   }
 }
 
