@@ -63,7 +63,7 @@ const subscribe = (callback: () => void) => {
    * This is due to Next.js's router calling pushState in a useInsertionEffect:
    * @see https://github.com/vercel/next.js/blob/4fa7d80eb9183273cc531623bb45606942b438d6/packages/next/src/client/components/app-router.tsx#L91
    *
-   * Let's investigate further. This doesn't feel great.
+   * @todo let's investigate further. This doesn't feel great.
    *
    * Surely Next.js's router gets around this somehow in order to support
    * usePathname() and useSearchParams()
