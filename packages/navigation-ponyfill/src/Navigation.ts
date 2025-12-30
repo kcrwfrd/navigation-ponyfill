@@ -10,8 +10,14 @@ import { HistoryShim } from './HistoryShim'
 export class Navigation extends EventTarget {
   static readonly KEY = '__NAVIGATION_PONYFILL'
   #history: History | HistoryShim
-  #ogPushState: typeof History.prototype.pushState
-  #ogReplaceState: typeof History.prototype.replaceState
+  #ogPushState: (state: any, unused: string, url?: string | URL | null) => void
+  #ogReplaceState: (
+    state: any,
+    unused: string,
+    url?: string | URL | null,
+  ) => void
+  #originalPushState: typeof History.prototype.pushState
+  #originalReplaceState: typeof History.prototype.replaceState
   #popstateListener: ((event: PopStateEvent) => void) | null = null
 
   constructor(history: History | HistoryShim) {
@@ -19,6 +25,11 @@ export class Navigation extends EventTarget {
 
     this.#history = history
 
+    // Store the original unbound methods for restoration
+    this.#originalPushState = history.pushState
+    this.#originalReplaceState = history.replaceState
+
+    // Create bound versions for calling
     this.#ogPushState = history.pushState.bind(history)
     this.#ogReplaceState = history.replaceState.bind(history)
 
@@ -103,9 +114,9 @@ export class Navigation extends EventTarget {
    * no longer needed to prevent memory leaks and restore original behavior.
    */
   dispose() {
-    // Restore original history methods
-    this.#history.pushState = this.#ogPushState
-    this.#history.replaceState = this.#ogReplaceState
+    // Restore original history methods (unbound)
+    this.#history.pushState = this.#originalPushState
+    this.#history.replaceState = this.#originalReplaceState
 
     // Remove popstate listener
     if (typeof window !== 'undefined' && this.#popstateListener) {
