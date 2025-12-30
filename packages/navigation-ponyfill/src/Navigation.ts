@@ -30,7 +30,7 @@ export class Navigation extends EventTarget {
       _unused: string,
       url?: string | URL | null,
     ) {
-      const previousPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+      const previousPath = getCurrentUrl()
 
       const state = {
         ...(ogState || {}),
@@ -68,9 +68,7 @@ export class Navigation extends EventTarget {
       }
 
       // @todo perhaps we can retrieve this entry from the entries() array instaed of instantiating here?
-      const currentEntry = new NavigationHistoryEntry(
-        `${window.location.pathname}${window.location.search}${window.location.hash}`,
-      )
+      const currentEntry = new NavigationHistoryEntry(getCurrentUrl())
 
       ogReplaceState(state, _unused, url)
 
@@ -98,4 +96,12 @@ export class Navigation extends EventTarget {
   get canGoBack() {
     return this.#history.state?.[Navigation.KEY]?.canGoBack ?? false
   }
+}
+
+function getCurrentUrl() {
+  if (typeof window === 'undefined') {
+    throw new Error('getCurrentUrl can only be called in the browser')
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`
 }
