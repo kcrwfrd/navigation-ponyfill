@@ -6,6 +6,7 @@
  * import { Navigation } from 'navigation-ponyfill/core'
  */
 
+export { createNavigation } from './createNavigation'
 export { Navigation } from './Navigation'
 export { NavigationCurrentEntryChangeEvent } from './NavigationCurrentEntryChangeEvent'
 export { NavigationHistoryEntry } from './NavigationHistoryEntry'

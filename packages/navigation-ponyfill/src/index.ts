@@ -1,5 +1,6 @@
-import { Navigation } from './Navigation'
+import { createNavigation } from './createNavigation'
 import { HistoryShim } from './HistoryShim'
+import { Navigation } from './Navigation'
 
 /**
  * Pre-initialized Navigation singleton.
@@ -17,8 +18,6 @@ import { HistoryShim } from './HistoryShim'
  *   console.log(event)
  * })
  */
-export const navigation = new Navigation(
-  typeof window !== 'undefined' ? window.history : new HistoryShim(),
-)
+export const navigation = createNavigation()
 
 export * from './core'
