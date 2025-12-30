@@ -139,9 +139,9 @@ function getCurrentUrl() {
  * if it's not an object (e.g. boolean, number, string, etc.)
  */
 function assertStateIsObjectOrNullish(state: unknown): void {
-  if (state != null && typeof state !== 'object') {
+  if (state != null && (typeof state !== 'object' || Array.isArray(state))) {
     throw new TypeError(
-      `history state must be an object or nullish, received ${typeof state}`,
+      `history state must be a non-array object or nullish, received ${Array.isArray(state) ? 'array' : typeof state}`,
     )
   }
 }
