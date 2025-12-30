@@ -10,14 +10,17 @@ import { HistoryShim } from './HistoryShim'
 export class Navigation extends EventTarget {
   static readonly KEY = '__NAVIGATION_PONYFILL'
   #history: History | HistoryShim
+  #ogPushState: typeof History.prototype.pushState
+  #ogReplaceState: typeof History.prototype.replaceState
+  #popstateListener: ((event: PopStateEvent) => void) | null = null
 
   constructor(history: History | HistoryShim) {
     super()
 
     this.#history = history
 
-    const ogPushState = history.pushState.bind(history)
-    const ogReplaceState = history.replaceState.bind(history)
+    this.#ogPushState = history.pushState.bind(history)
+    this.#ogReplaceState = history.replaceState.bind(history)
 
     const self = this
 
@@ -43,7 +46,7 @@ export class Navigation extends EventTarget {
       // @todo use this.currentEntry instead of instantiating here
       const currentEntry = new NavigationHistoryEntry(previousPath)
 
-      ogPushState(state, _unused, url)
+      self.#ogPushState(state, _unused, url)
 
       self.dispatchEvent(
         new NavigationCurrentEntryChangeEvent('currententrychange', {
@@ -70,7 +73,7 @@ export class Navigation extends EventTarget {
       // @todo perhaps we can retrieve this entry from the entries() array instead of instantiating here?
       const currentEntry = new NavigationHistoryEntry(getCurrentUrl())
 
-      ogReplaceState(state, _unused, url)
+      self.#ogReplaceState(state, _unused, url)
 
       self.dispatchEvent(
         new NavigationCurrentEntryChangeEvent('currententrychange', {
@@ -81,7 +84,7 @@ export class Navigation extends EventTarget {
     }
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('popstate', (event) => {
+      this.#popstateListener = (event) => {
         self.dispatchEvent(
           new NavigationCurrentEntryChangeEvent('currententrychange', {
             // @todo how can we determine the prior entry at this time?
@@ -89,7 +92,25 @@ export class Navigation extends EventTarget {
             navigationType: 'traverse',
           }),
         )
-      })
+      }
+      window.addEventListener('popstate', this.#popstateListener)
+    }
+  }
+
+  /**
+   * Cleans up the Navigation instance by restoring original history methods
+   * and removing event listeners. Call this when the Navigation instance is
+   * no longer needed to prevent memory leaks and restore original behavior.
+   */
+  dispose() {
+    // Restore original history methods
+    this.#history.pushState = this.#ogPushState
+    this.#history.replaceState = this.#ogReplaceState
+
+    // Remove popstate listener
+    if (typeof window !== 'undefined' && this.#popstateListener) {
+      window.removeEventListener('popstate', this.#popstateListener)
+      this.#popstateListener = null
     }
   }
 
