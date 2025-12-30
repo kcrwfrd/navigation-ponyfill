@@ -9,10 +9,15 @@
     "dev:lib": "npm run dev --workspace=packages/navigation-ponyfill",
     "dev:next": "npm run dev --workspace=examples/next",
     "build": "npm run build --workspace=packages/navigation-ponyfill",
+    "clean": "npm run clean --workspace=packages/navigation-ponyfill",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "npm run build && changeset publish",
     "lint": "eslint",
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "prettier": "^3.6.2"
   }
 }
