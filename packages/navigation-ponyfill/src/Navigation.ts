@@ -61,9 +61,9 @@ export class Navigation extends EventTarget {
       const state = {
         ...(ogState || {}),
         [Navigation.KEY]: {
-          canGoBack: window.history.state?.[Navigation.KEY]?.canGoBack ?? false,
+          canGoBack: self.#history.state?.[Navigation.KEY]?.canGoBack ?? false,
           previousPath:
-            window.history.state?.[Navigation.KEY]?.previousPath ?? null,
+            self.#history.state?.[Navigation.KEY]?.previousPath ?? null,
         },
       }
 
