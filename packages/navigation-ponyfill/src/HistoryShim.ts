@@ -3,14 +3,6 @@
  */
 export class HistoryShim {
   public readonly state = null
-
-  constructor() {}
-
-  pushState(state: any, _unused: string, url?: string | URL | null) {
-    return
-  }
-
-  replaceState(state: any, _unused: string, url?: string | URL | null) {
-    return
-  }
+  pushState(state: any, _unused: string, url?: string | URL | null) {}
+  replaceState(state: any, _unused: string, url?: string | URL | null) {}
 }
