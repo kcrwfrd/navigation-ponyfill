@@ -94,7 +94,7 @@ export class Navigation extends EventTarget {
     }
 
     if (typeof window !== 'undefined') {
-      this.#popstateHandler = () => {
+      this.#popstateHandler = (_event: PopStateEvent) => {
         this.dispatchEvent(
           new NavigationCurrentEntryChangeEvent('currententrychange', {
             // @todo how can we determine the prior entry at this time?
