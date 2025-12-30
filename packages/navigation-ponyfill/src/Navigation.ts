@@ -16,8 +16,16 @@ export class Navigation extends EventTarget {
     unused: string,
     url?: string | URL | null,
   ) => void
-  #originalPushState: typeof History.prototype.pushState
-  #originalReplaceState: typeof History.prototype.replaceState
+  #originalPushState: (
+    state: any,
+    unused: string,
+    url?: string | URL | null,
+  ) => void
+  #originalReplaceState: (
+    state: any,
+    unused: string,
+    url?: string | URL | null,
+  ) => void
   #popstateListener: ((event: PopStateEvent) => void) | null = null
 
   constructor(history: History | HistoryShim) {
