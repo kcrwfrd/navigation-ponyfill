@@ -10,8 +10,8 @@ import { HistoryShim } from './HistoryShim'
 export class Navigation extends EventTarget {
   static readonly KEY = '__NAVIGATION_PONYFILL'
   #history: History | HistoryShim
-  #ogPushState: (state: any, unused: string, url?: string | URL | null) => void
-  #ogReplaceState: (
+  #boundPushState: (state: any, unused: string, url?: string | URL | null) => void
+  #boundReplaceState: (
     state: any,
     unused: string,
     url?: string | URL | null,
@@ -30,8 +30,8 @@ export class Navigation extends EventTarget {
     this.#originalReplaceState = history.replaceState
 
     // Create bound versions for calling
-    this.#ogPushState = history.pushState.bind(history)
-    this.#ogReplaceState = history.replaceState.bind(history)
+    this.#boundPushState = history.pushState.bind(history)
+    this.#boundReplaceState = history.replaceState.bind(history)
 
     const self = this
 
@@ -57,7 +57,7 @@ export class Navigation extends EventTarget {
       // @todo use this.currentEntry instead of instantiating here
       const currentEntry = new NavigationHistoryEntry(previousPath)
 
-      self.#ogPushState(state, _unused, url)
+      self.#boundPushState(state, _unused, url)
 
       self.dispatchEvent(
         new NavigationCurrentEntryChangeEvent('currententrychange', {
@@ -84,7 +84,7 @@ export class Navigation extends EventTarget {
       // @todo perhaps we can retrieve this entry from the entries() array instead of instantiating here?
       const currentEntry = new NavigationHistoryEntry(getCurrentUrl())
 
-      self.#ogReplaceState(state, _unused, url)
+      self.#boundReplaceState(state, _unused, url)
 
       self.dispatchEvent(
         new NavigationCurrentEntryChangeEvent('currententrychange', {
