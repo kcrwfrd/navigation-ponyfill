@@ -1,6 +1,4 @@
 import { createNavigation } from './createNavigation'
-import { HistoryShim } from './HistoryShim'
-import { Navigation } from './Navigation'
 
 /**
  * Pre-initialized Navigation singleton.
