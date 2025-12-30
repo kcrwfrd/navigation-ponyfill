@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useSyncExternalStore,
   type PropsWithChildren,
@@ -54,6 +53,10 @@ export const useNavigation = () => {
   return context
 }
 
+// WeakMap to store the mapping between callbacks and their wrapper functions
+// This ensures proper cleanup even with multiple subscription/unsubscription cycles
+const callbackWrappers = new WeakMap<() => void, () => void>()
+
 const subscribe = (callback: () => void) => {
   /**
    * Without the use of queueMicrotask, we will get the following error:
@@ -68,12 +71,20 @@ const subscribe = (callback: () => void) => {
    * Surely Next.js's router gets around this somehow in order to support
    * usePathname() and useSearchParams()
    */
-  const fn = () => queueMicrotask(callback)
+  
+  // Reuse the wrapper function if it already exists for this callback
+  let fn = callbackWrappers.get(callback)
+  if (!fn) {
+    fn = () => queueMicrotask(callback)
+    callbackWrappers.set(callback, fn)
+  }
 
   navigation.addEventListener('currententrychange', fn)
 
   return () => {
-    navigation.removeEventListener('currententrychange', fn)
+    if (fn) {
+      navigation.removeEventListener('currententrychange', fn)
+    }
   }
 }
 
