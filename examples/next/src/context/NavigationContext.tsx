@@ -82,9 +82,7 @@ const subscribe = (callback: () => void) => {
   navigation.addEventListener('currententrychange', fn)
 
   return () => {
-    if (fn) {
-      navigation.removeEventListener('currententrychange', fn)
-    }
+    navigation.removeEventListener('currententrychange', fn)
   }
 }
 
