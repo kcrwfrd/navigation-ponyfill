@@ -1,0 +1,11 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "next-example": "0.1.0",
+    "navigation-ponyfill": "0.0.0"
+  },
+  "changesets": [
+    "slimy-yaks-double"
+  ]
+}

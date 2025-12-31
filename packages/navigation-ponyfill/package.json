@@ -1,6 +1,6 @@
 {
   "name": "navigation-ponyfill",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "description": "A ponyfill (polyfill) for the browser Navigation API",
   "keywords": [
     "navigation",
