@@ -1,55 +1,47 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Navigation } from '../Navigation'
 import { NavigationCurrentEntryChangeEvent } from '../NavigationCurrentEntryChangeEvent'
-import { MockHistory } from '../__mocks__/historyMock'
 
 describe('Navigation', () => {
-  let mockHistory: MockHistory
   let nav: Navigation
+  const history = window.history
 
   beforeEach(() => {
-    mockHistory = new MockHistory()
-    vi.stubGlobal('history', mockHistory)
-    vi.stubGlobal('location', {
-      pathname: '/initial',
-      search: '',
-      hash: '',
-      href: 'http://localhost/initial',
-    })
+    // Reset history state
+    history.replaceState(null, '', '/initial')
     vi.spyOn(window, 'addEventListener')
     vi.spyOn(window, 'removeEventListener')
   })
 
   afterEach(() => {
     nav?.destroy()
-    vi.unstubAllGlobals()
   })
 
   describe('constructor', () => {
     it('should extend EventTarget', () => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
 
       expect(nav).toBeInstanceOf(EventTarget)
     })
 
     it('should monkey-patch history.pushState', () => {
-      const originalPushState = mockHistory.pushState
+      const originalPushState = history.pushState
 
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
 
-      expect(mockHistory.pushState).not.toBe(originalPushState)
+      expect(history.pushState).not.toBe(originalPushState)
     })
 
     it('should monkey-patch history.replaceState', () => {
-      const originalReplaceState = mockHistory.replaceState
+      const originalReplaceState = history.replaceState
 
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
 
-      expect(mockHistory.replaceState).not.toBe(originalReplaceState)
+      expect(history.replaceState).not.toBe(originalReplaceState)
     })
 
     it('should register popstate event listener in browser environment', () => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
 
       expect(window.addEventListener).toHaveBeenCalledWith(
         'popstate',
@@ -66,42 +58,40 @@ describe('Navigation', () => {
 
   describe('monkey-patched pushState', () => {
     beforeEach(() => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
     })
 
     it('should inject __NAVIGATION_PONYFILL metadata into state', () => {
-      mockHistory.pushState({ foo: 'bar' }, '', '/new-path')
+      history.pushState({ foo: 'bar' }, '', '/new-path')
 
-      expect(mockHistory.state).toHaveProperty('__NAVIGATION_PONYFILL')
-      expect(mockHistory.state.foo).toBe('bar')
+      expect(history.state).toHaveProperty('__NAVIGATION_PONYFILL')
+      expect(history.state.foo).toBe('bar')
     })
 
     it('should set canGoBack to true in metadata', () => {
-      mockHistory.pushState({}, '', '/new-path')
+      history.pushState({}, '', '/new-path')
 
-      expect(mockHistory.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
+      expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
     })
 
     it('should capture previousPath from current location', () => {
-      mockHistory.pushState({}, '', '/new-path')
+      history.pushState({}, '', '/new-path')
 
-      expect(mockHistory.state.__NAVIGATION_PONYFILL.previousPath).toBe(
-        '/initial',
-      )
+      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/initial')
     })
 
     it('should preserve original state properties', () => {
-      mockHistory.pushState({ custom: 'data', nested: { a: 1 } }, '', '/path')
+      history.pushState({ custom: 'data', nested: { a: 1 } }, '', '/path')
 
-      expect(mockHistory.state.custom).toBe('data')
-      expect(mockHistory.state.nested).toEqual({ a: 1 })
+      expect(history.state.custom).toBe('data')
+      expect(history.state.nested).toEqual({ a: 1 })
     })
 
     it('should dispatch currententrychange event with type "push"', () => {
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
-      mockHistory.pushState({}, '', '/new-path')
+      history.pushState({}, '', '/new-path')
 
       expect(handler).toHaveBeenCalledTimes(1)
       const event = handler.mock
@@ -113,7 +103,7 @@ describe('Navigation', () => {
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
-      mockHistory.pushState({}, '', '/new-path')
+      history.pushState({}, '', '/new-path')
 
       const event = handler.mock
         .calls[0][0] as NavigationCurrentEntryChangeEvent
@@ -122,19 +112,19 @@ describe('Navigation', () => {
 
     it('should throw TypeError when state is a primitive string', () => {
       expect(() => {
-        mockHistory.pushState('invalid', '', '/path')
+        history.pushState('invalid', '', '/path')
       }).toThrow(TypeError)
     })
 
     it('should throw TypeError when state is a number', () => {
       expect(() => {
-        mockHistory.pushState(42, '', '/path')
+        history.pushState(42, '', '/path')
       }).toThrow(TypeError)
     })
 
     it('should throw TypeError with descriptive message for array state', () => {
       expect(() => {
-        mockHistory.pushState(['array'], '', '/path')
+        history.pushState(['array'], '', '/path')
       }).toThrow(
         'history state must be a non-array object or nullish, received array',
       )
@@ -142,84 +132,84 @@ describe('Navigation', () => {
 
     it('should throw TypeError when state is a boolean', () => {
       expect(() => {
-        mockHistory.pushState(true, '', '/path')
+        history.pushState(true, '', '/path')
       }).toThrow(TypeError)
     })
 
     it('should accept null state', () => {
       expect(() => {
-        mockHistory.pushState(null, '', '/path')
+        history.pushState(null, '', '/path')
       }).not.toThrow()
 
-      expect(mockHistory.state.__NAVIGATION_PONYFILL).toBeDefined()
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
     })
 
     it('should accept undefined state', () => {
       expect(() => {
-        mockHistory.pushState(undefined, '', '/path')
+        history.pushState(undefined, '', '/path')
       }).not.toThrow()
 
-      expect(mockHistory.state.__NAVIGATION_PONYFILL).toBeDefined()
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
     })
 
     it('should accept object state', () => {
       expect(() => {
-        mockHistory.pushState({ valid: 'object' }, '', '/path')
+        history.pushState({ valid: 'object' }, '', '/path')
       }).not.toThrow()
     })
   })
 
   describe('monkey-patched replaceState', () => {
     beforeEach(() => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
     })
 
     it('should inject __NAVIGATION_PONYFILL metadata into state', () => {
-      mockHistory.replaceState({ foo: 'bar' }, '', '/replaced')
+      history.replaceState({ foo: 'bar' }, '', '/replaced')
 
-      expect(mockHistory.state).toHaveProperty('__NAVIGATION_PONYFILL')
-      expect(mockHistory.state.foo).toBe('bar')
+      expect(history.state).toHaveProperty('__NAVIGATION_PONYFILL')
+      expect(history.state.foo).toBe('bar')
     })
 
     it('should preserve existing canGoBack value from previous state', () => {
       // First push to set canGoBack to true
-      mockHistory.pushState({}, '', '/first')
-      expect(mockHistory.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
+      history.pushState({}, '', '/first')
+      expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
 
       // Replace should preserve canGoBack
-      mockHistory.replaceState({}, '', '/replaced')
-      expect(mockHistory.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
+      history.replaceState({}, '', '/replaced')
+      expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
     })
 
     it('should default canGoBack to false when no previous state', () => {
-      mockHistory.replaceState({}, '', '/replaced')
+      history.replaceState({}, '', '/replaced')
 
-      expect(mockHistory.state.__NAVIGATION_PONYFILL.canGoBack).toBe(false)
+      expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(false)
     })
 
     it('should preserve existing previousPath from previous state', () => {
       // Push sets previousPath
-      mockHistory.pushState({}, '', '/second')
-      const previousPath = mockHistory.state.__NAVIGATION_PONYFILL.previousPath
+      history.pushState({}, '', '/second')
+      const previousPath = history.state.__NAVIGATION_PONYFILL.previousPath
 
       // Replace should preserve previousPath
-      mockHistory.replaceState({}, '', '/replaced')
-      expect(mockHistory.state.__NAVIGATION_PONYFILL.previousPath).toBe(
+      history.replaceState({}, '', '/replaced')
+      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe(
         previousPath,
       )
     })
 
     it('should default previousPath to null when no previous state', () => {
-      mockHistory.replaceState({}, '', '/replaced')
+      history.replaceState({}, '', '/replaced')
 
-      expect(mockHistory.state.__NAVIGATION_PONYFILL.previousPath).toBe(null)
+      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe(null)
     })
 
     it('should dispatch currententrychange event with type "replace"', () => {
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
-      mockHistory.replaceState({}, '', '/replaced')
+      history.replaceState({}, '', '/replaced')
 
       expect(handler).toHaveBeenCalledTimes(1)
       const event = handler.mock
@@ -231,7 +221,7 @@ describe('Navigation', () => {
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
-      mockHistory.replaceState({}, '', '/replaced')
+      history.replaceState({}, '', '/replaced')
 
       const event = handler.mock
         .calls[0][0] as NavigationCurrentEntryChangeEvent
@@ -240,22 +230,22 @@ describe('Navigation', () => {
 
     it('should throw TypeError for primitive state values', () => {
       expect(() => {
-        mockHistory.replaceState('string', '', '/path')
+        history.replaceState('string', '', '/path')
       }).toThrow(TypeError)
 
       expect(() => {
-        mockHistory.replaceState(123, '', '/path')
+        history.replaceState(123, '', '/path')
       }).toThrow(TypeError)
 
       expect(() => {
-        mockHistory.replaceState(true, '', '/path')
+        history.replaceState(true, '', '/path')
       }).toThrow(TypeError)
     })
   })
 
   describe('popstate handling', () => {
     beforeEach(() => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
     })
 
     it('should dispatch currententrychange event on popstate', () => {
@@ -281,7 +271,7 @@ describe('Navigation', () => {
 
   describe('canGoBack getter', () => {
     beforeEach(() => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
     })
 
     it('should return false when history.state is null', () => {
@@ -291,20 +281,20 @@ describe('Navigation', () => {
     it('should return false when __NAVIGATION_PONYFILL is missing', () => {
       // Use unpatched replaceState to set state without metadata
       nav.destroy()
-      mockHistory.replaceState({ noMetadata: true }, '', '/path')
-      nav = new Navigation(mockHistory)
+      history.replaceState({ noMetadata: true }, '', '/path')
+      nav = new Navigation(history)
 
       expect(nav.canGoBack).toBe(false)
     })
 
     it('should return true when canGoBack in metadata is true', () => {
-      mockHistory.pushState({}, '', '/new-path')
+      history.pushState({}, '', '/new-path')
 
       expect(nav.canGoBack).toBe(true)
     })
 
     it('should return false after replaceState on initial page', () => {
-      mockHistory.replaceState({}, '', '/replaced')
+      history.replaceState({}, '', '/replaced')
 
       expect(nav.canGoBack).toBe(false)
     })
@@ -312,27 +302,27 @@ describe('Navigation', () => {
 
   describe('destroy()', () => {
     it('should restore original pushState method', () => {
-      const originalPushState = mockHistory.pushState
+      const originalPushState = history.pushState
 
-      nav = new Navigation(mockHistory)
-      expect(mockHistory.pushState).not.toBe(originalPushState)
+      nav = new Navigation(history)
+      expect(history.pushState).not.toBe(originalPushState)
 
       nav.destroy()
-      expect(mockHistory.pushState).toBe(originalPushState)
+      expect(history.pushState).toBe(originalPushState)
     })
 
     it('should restore original replaceState method', () => {
-      const originalReplaceState = mockHistory.replaceState
+      const originalReplaceState = history.replaceState
 
-      nav = new Navigation(mockHistory)
-      expect(mockHistory.replaceState).not.toBe(originalReplaceState)
+      nav = new Navigation(history)
+      expect(history.replaceState).not.toBe(originalReplaceState)
 
       nav.destroy()
-      expect(mockHistory.replaceState).toBe(originalReplaceState)
+      expect(history.replaceState).toBe(originalReplaceState)
     })
 
     it('should remove popstate event listener', () => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
 
       nav.destroy()
 
@@ -343,7 +333,7 @@ describe('Navigation', () => {
     })
 
     it('should allow multiple destroy calls without error', () => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
 
       expect(() => {
         nav.destroy()
@@ -355,7 +345,7 @@ describe('Navigation', () => {
 
   describe('event listener management', () => {
     beforeEach(() => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
     })
 
     it('should support multiple event listeners', () => {
@@ -365,7 +355,7 @@ describe('Navigation', () => {
       nav.addEventListener('currententrychange', handler1)
       nav.addEventListener('currententrychange', handler2)
 
-      mockHistory.pushState({}, '', '/path')
+      history.pushState({}, '', '/path')
 
       expect(handler1).toHaveBeenCalledTimes(1)
       expect(handler2).toHaveBeenCalledTimes(1)
@@ -377,7 +367,7 @@ describe('Navigation', () => {
       nav.addEventListener('currententrychange', handler)
       nav.removeEventListener('currententrychange', handler)
 
-      mockHistory.pushState({}, '', '/path')
+      history.pushState({}, '', '/path')
 
       expect(handler).not.toHaveBeenCalled()
     })
@@ -385,7 +375,7 @@ describe('Navigation', () => {
 
   describe('navigation chain', () => {
     beforeEach(() => {
-      nav = new Navigation(mockHistory)
+      nav = new Navigation(history)
     })
 
     it('should track navigation chain with canGoBack', () => {
@@ -393,11 +383,11 @@ describe('Navigation', () => {
       expect(nav.canGoBack).toBe(false)
 
       // First navigation
-      mockHistory.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page1')
       expect(nav.canGoBack).toBe(true)
 
       // Second navigation
-      mockHistory.pushState({}, '', '/page2')
+      history.pushState({}, '', '/page2')
       expect(nav.canGoBack).toBe(true)
     })
 
@@ -405,7 +395,7 @@ describe('Navigation', () => {
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
-      mockHistory.pushState({}, '', '/search?q=test&page=1')
+      history.pushState({}, '', '/search?q=test&page=1')
 
       expect(handler).toHaveBeenCalledTimes(1)
     })
@@ -414,7 +404,7 @@ describe('Navigation', () => {
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
-      mockHistory.pushState({}, '', '/page#section')
+      history.pushState({}, '', '/page#section')
 
       expect(handler).toHaveBeenCalledTimes(1)
     })
