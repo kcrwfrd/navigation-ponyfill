@@ -122,7 +122,7 @@ function createNavigation(history?: History | HistoryShim): Navigation
 
 ### Next.js
 
-See the [Next.js example](https://github.com/kcrwfrd/navigation-ponyfill/tree/main/examples/next) for a complete integration with React context and hooks.
+See the [Next.js example](./examples/next) for a complete integration with React context and hooks.
 
 ## SSR Support
 
@@ -168,4 +168,4 @@ Normally you can call `history.pushState(state, '', url)` with any serializable 
 
 ## Links
 
-- [License (MIT)](https://github.com/kcrwfrd/navigation-ponyfill/blob/main/LICENSE)
+- [License (MIT)](./LICENSE)
