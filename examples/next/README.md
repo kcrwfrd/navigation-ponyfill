@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js + navigation-ponyfill
 
-## Getting Started
+This example demonstrates how to integrate [navigation-ponyfill](../../) with a Next.js application to implement reliable back button behavior.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### 1. Enable the ponyfill on the client
+
+```typescript
+// instrumentation-client.ts
+import 'navigation-ponyfill'
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This file is automatically loaded by Next.js on the client side, ensuring the ponyfill patches `history.pushState` and `history.replaceState` before any navigation occurs.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Create a React context for navigation state
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```tsx
+// NavigationContext.tsx
+'use client'
 
-## Learn More
+import { navigation, Navigation } from 'navigation-ponyfill'
+import { createContext, useContext, useSyncExternalStore } from 'react'
 
-To learn more about Next.js, take a look at the following resources:
+interface NavigationState {
+  canGoBack: boolean
+  previousPath: string | null
+  ready: boolean
+}
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+const NavigationContext = createContext<NavigationState | null>(null)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+function useSyncHistoryState(): NavigationState {
+  return useSyncExternalStore(
+    (callback) => {
+      const handler = () => queueMicrotask(callback)
+      navigation.addEventListener('currententrychange', handler)
+      return () => navigation.removeEventListener('currententrychange', handler)
+    },
+    () => {
+      const state = window.history.state?.[Navigation.KEY]
+      return {
+        canGoBack: state?.canGoBack ?? false,
+        previousPath: state?.previousPath ?? null,
+        ready: true,
+      }
+    },
+    () => ({ canGoBack: false, previousPath: null, ready: false }),
+  )
+}
 
-## Deploy on Vercel
+export function NavigationProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const router = useRouter()
+  const { canGoBack, previousPath, ready } = useSyncHistoryState()
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+  return (
+    <NavigationContext value={{ canGoBack, previousPath, ready }}>
+      {children}
+    </NavigationContext>
+  )
+}
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+export function useNavigation() {
+  const context = useContext(NavigationContext)
+  if (!context) {
+    throw new Error('useNavigation must be used within NavigationProvider')
+  }
+  return context
+}
+```
+
+### 3. Use in components
+
+```tsx
+'use client'
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+import { useNavigation } from './NavigationContext'
+
+function BackButton({ fallbackUrl = '/' }: { fallbackUrl?: string }) {
+  const router = useRouter()
+  const { canGoBack, previousPath } = useNavigation()
+
+  return (
+    <Link
+      href={previousPath ?? fallbackUrl}
+      onClick={(event) => {
+        event.preventDefault()
+
+        if (canGoBack) {
+          router.back()
+        } else {
+          router.replace(fallbackUrl)
+        }
+      }}
+    >
+      Back
+    </Link>
+  )
+}
+```
+
+In the future I intend to publish these bindings in a package so you can simply use them out of the box.
+
+## Why `queueMicrotask`?
+
+The `useSyncHistoryState` hook uses `queueMicrotask` to defer the callback. This avoids conflicts with Next.js router's internal use of `useInsertionEffect`, which can cause issues if state updates happen synchronously during the event handler.
+
+## Why `ready`?
+
+The `ready` flag indicates whether the component has hydrated and has access to the actual navigation state. During SSR and initial hydration, `canGoBack` defaults to `false`. You can use `ready` to:
+
+- Hide UI elements until hydration completes (prevents flash of incorrect state)
+- Show a loading/skeleton state
+- Conditionally render based on actual navigation capability
+
+## Running this example
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see the example in action.

@@ -13,9 +13,12 @@ export function BackButton({ fallbackUrl }: { fallbackUrl: string }) {
     <Link
       href={previousPath ?? fallbackUrl}
       onClick={(event) => {
+        event.preventDefault()
+
         if (canGoBack) {
-          event.preventDefault()
           router.back()
+        } else {
+          router.replace(fallbackUrl)
         }
       }}
       className="w-9 h-9 flex items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
