@@ -411,5 +411,67 @@ describe('Navigation', () => {
 
       expect(handler).toHaveBeenCalledTimes(1)
     })
+
+    it('should track previousPath through multiple navigations', () => {
+      history.pushState({}, '', '/page1')
+      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/initial')
+
+      history.pushState({}, '', '/page2')
+      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/page1')
+
+      history.pushState({}, '', '/page3')
+      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/page2')
+    })
+
+    it('should preserve canGoBack and previousPath when replaceState is used mid-chain', () => {
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+
+      // Replace current entry - should preserve navigation metadata
+      history.replaceState({ replaced: true }, '', '/page2-replaced')
+
+      expect(nav.canGoBack).toBe(true)
+      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/page1')
+      expect(history.state.replaced).toBe(true)
+    })
+
+    it('should track event.from correctly through navigation chain', () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+      history.pushState({}, '', '/page3')
+
+      expect(handler).toHaveBeenCalledTimes(3)
+
+      const events = handler.mock.calls.map(
+        (call) => call[0] as NavigationCurrentEntryChangeEvent,
+      )
+      expect(events[0].from.url).toBe('/initial')
+      expect(events[1].from.url).toBe('/page1')
+      expect(events[2].from.url).toBe('/page2')
+    })
+
+    it('should preserve user state alongside navigation metadata', () => {
+      history.pushState({ step: 1, data: 'first' }, '', '/page1')
+      history.pushState({ step: 2, data: 'second' }, '', '/page2')
+
+      expect(history.state.step).toBe(2)
+      expect(history.state.data).toBe('second')
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
+    })
+
+    it('should handle complex URL with query params and hash', () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      history.pushState({}, '', '/search?q=test&filter=active#results')
+
+      const event = handler.mock
+        .calls[0][0] as NavigationCurrentEntryChangeEvent
+      expect(event.navigationType).toBe('push')
+      expect(event.from.url).toBe('/initial')
+    })
   })
 })
