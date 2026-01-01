@@ -15,7 +15,8 @@
     "changeset:version": "changeset version",
     "changeset:publish": "npm run build && changeset publish",
     "lint": "eslint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:types": "npm run test:types --workspace=packages/navigation-ponyfill"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
