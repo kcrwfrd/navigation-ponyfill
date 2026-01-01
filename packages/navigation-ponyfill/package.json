@@ -48,7 +48,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build && cp ../../README.md ./README.md"
+    "prepublishOnly": "npm run clean && npm run build && cp ../../README.md ./README.md",
+    "test:types": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5"
