@@ -9,12 +9,11 @@ describe('Navigation', () => {
   beforeEach(() => {
     // Reset history state
     history.replaceState(null, '', '/initial')
-    vi.spyOn(window, 'addEventListener')
-    vi.spyOn(window, 'removeEventListener')
   })
 
   afterEach(() => {
     nav?.destroy()
+    vi.restoreAllMocks()
   })
 
   describe('constructor', () => {
@@ -41,6 +40,8 @@ describe('Navigation', () => {
     })
 
     it('should register popstate event listener in browser environment', () => {
+      vi.spyOn(window, 'addEventListener')
+
       nav = new Navigation(history)
 
       expect(window.addEventListener).toHaveBeenCalledWith(
@@ -322,6 +323,8 @@ describe('Navigation', () => {
     })
 
     it('should remove popstate event listener', () => {
+      vi.spyOn(window, 'removeEventListener')
+
       nav = new Navigation(history)
 
       nav.destroy()
