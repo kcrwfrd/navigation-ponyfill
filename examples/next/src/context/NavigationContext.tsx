@@ -2,17 +2,13 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
-  useMemo,
   useSyncExternalStore,
   type PropsWithChildren,
 } from 'react'
 import { navigation, Navigation } from 'navigation-ponyfill'
-import { useRouter } from 'next/navigation'
 
-interface NavigationContextType {
-  back: (fallbackUrl?: string) => void
+interface NavigationState {
   canGoBack: boolean
   previousPath: string | null
   /**
@@ -22,32 +18,11 @@ interface NavigationContextType {
    */
   ready: boolean
 }
-export const NavigationContext = createContext<NavigationContextType | null>(
-  null,
-)
+export const NavigationContext = createContext<NavigationState | null>(null)
 
 export const NavigationProvider = ({ children }: PropsWithChildren) => {
-  const router = useRouter()
-
-  const { canGoBack, previousPath, ready } = useSyncHistoryState()
-
-  const back = useCallback(
-    (fallbackUrl?: string) => {
-      if (canGoBack) {
-        router.back()
-      } else if (fallbackUrl) {
-        router.push(fallbackUrl)
-      }
-    },
-    [router, canGoBack],
-  )
-
-  const value = useMemo(
-    () => ({ back, canGoBack, previousPath, ready }),
-    [back, canGoBack, previousPath, ready],
-  )
-
-  return <NavigationContext value={value}>{children}</NavigationContext>
+  const state = useSyncNavigationState()
+  return <NavigationContext value={state}>{children}</NavigationContext>
 }
 
 export const useNavigation = () => {
@@ -81,12 +56,6 @@ const subscribe = (callback: () => void) => {
   }
 }
 
-interface NavigationState {
-  canGoBack: boolean
-  previousPath: string | null
-  ready: boolean
-}
-
 const SERVER_SNAPSHOT: NavigationState = {
   canGoBack: false,
   previousPath: null,
@@ -117,7 +86,7 @@ const getSnapshot = (): NavigationState => {
 
 const getServerSnapshot = (): NavigationState => SERVER_SNAPSHOT
 
-function useSyncHistoryState(): NavigationState {
+function useSyncNavigationState(): NavigationState {
   return useSyncExternalStore<NavigationState>(
     subscribe,
     getSnapshot,

@@ -19,8 +19,13 @@ This file is automatically loaded by Next.js on the client side, ensuring the po
 // NavigationContext.tsx
 'use client'
 
+import {
+  createContext,
+  useContext,
+  useSyncExternalStore,
+  type PropsWithChildren,
+} from 'react'
 import { navigation, Navigation } from 'navigation-ponyfill'
-import { createContext, useContext, useSyncExternalStore } from 'react'
 
 interface NavigationState {
   canGoBack: boolean
@@ -28,48 +33,67 @@ interface NavigationState {
   ready: boolean
 }
 
-const NavigationContext = createContext<NavigationState | null>(null)
+export const NavigationContext = createContext<NavigationState | null>(null)
 
-function useSyncHistoryState(): NavigationState {
-  return useSyncExternalStore(
-    (callback) => {
-      const handler = () => queueMicrotask(callback)
-      navigation.addEventListener('currententrychange', handler)
-      return () => navigation.removeEventListener('currententrychange', handler)
-    },
-    () => {
-      const state = window.history.state?.[Navigation.KEY]
-      return {
-        canGoBack: state?.canGoBack ?? false,
-        previousPath: state?.previousPath ?? null,
-        ready: true,
-      }
-    },
-    () => ({ canGoBack: false, previousPath: null, ready: false }),
-  )
+export const NavigationProvider = ({ children }: PropsWithChildren) => {
+  const state = useSyncNavigationState()
+  return <NavigationContext value={state}>{children}</NavigationContext>
 }
 
-export function NavigationProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const router = useRouter()
-  const { canGoBack, previousPath, ready } = useSyncHistoryState()
-
-  return (
-    <NavigationContext value={{ canGoBack, previousPath, ready }}>
-      {children}
-    </NavigationContext>
-  )
-}
-
-export function useNavigation() {
+export const useNavigation = () => {
   const context = useContext(NavigationContext)
   if (!context) {
-    throw new Error('useNavigation must be used within NavigationProvider')
+    throw new Error('useNavigation must be used within a NavigationProvider')
   }
   return context
+}
+
+const subscribe = (callback: () => void) => {
+  const fn = () => queueMicrotask(callback)
+
+  navigation.addEventListener('currententrychange', fn)
+
+  return () => {
+    navigation.removeEventListener('currententrychange', fn)
+  }
+}
+
+const SERVER_SNAPSHOT: NavigationState = {
+  canGoBack: false,
+  previousPath: null,
+  ready: false,
+}
+
+/**
+ * getSnapshot must return a cached value.
+ * @see https://react.dev/reference/react/useSyncExternalStore#im-getting-an-error-the-result-of-getsnapshot-should-be-cached
+ */
+let cachedSnapshot: NavigationState | null = null
+let cachedRawState: unknown = null
+
+const getSnapshot = (): NavigationState => {
+  const rawState = window.history.state?.[Navigation.KEY]
+
+  if (rawState !== cachedRawState) {
+    cachedRawState = rawState
+    cachedSnapshot = {
+      canGoBack: rawState?.canGoBack ?? false,
+      previousPath: rawState?.previousPath ?? null,
+      ready: true,
+    }
+  }
+
+  return cachedSnapshot!
+}
+
+const getServerSnapshot = (): NavigationState => SERVER_SNAPSHOT
+
+function useSyncNavigationState(): NavigationState {
+  return useSyncExternalStore<NavigationState>(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  )
 }
 ```
 
@@ -110,7 +134,7 @@ In the future I intend to publish these bindings in a package so you can simply 
 
 ## Why `queueMicrotask`?
 
-The `useSyncHistoryState` hook uses `queueMicrotask` to defer the callback. This avoids conflicts with Next.js router's internal use of `useInsertionEffect`, which can cause issues if state updates happen synchronously during the event handler.
+The `useSyncNavigationState` hook uses `queueMicrotask` to defer the callback. This avoids conflicts with Next.js router's internal use of `useInsertionEffect`, which can cause issues if state updates happen synchronously during the event handler.
 
 ## Why `ready`?
 
