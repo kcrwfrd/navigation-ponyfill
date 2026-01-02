@@ -10,6 +10,7 @@
     "dev:lib": "npm run dev --workspace=packages/navigation-ponyfill",
     "dev:next": "npm run dev --workspace=examples/next",
     "build": "npm run build --workspace=packages/navigation-ponyfill",
+    "build:next": "npm run build --workspace=examples/next",
     "clean": "npm run clean --workspace=packages/navigation-ponyfill",
     "changeset": "changeset",
     "changeset:version": "changeset version",
