@@ -3,11 +3,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 describe('core exports', () => {
   beforeEach(() => {
     vi.resetModules()
-    vi.stubGlobal('window', undefined)
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
   })
 
   it('should export createNavigation function', async () => {
