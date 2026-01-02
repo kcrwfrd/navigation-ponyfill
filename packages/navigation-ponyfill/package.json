@@ -49,9 +49,15 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build && cp ../../README.md ./README.md",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:types": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5"
+    "@vitest/coverage-v8": "^4.0.16",
+    "jsdom": "^27.4.0",
+    "typescript": "^5",
+    "vitest": "^4.0.16"
   }
 }
