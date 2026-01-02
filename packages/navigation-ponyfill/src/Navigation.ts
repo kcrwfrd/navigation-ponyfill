@@ -126,7 +126,7 @@ export class Navigation extends EventTarget {
   }
 }
 
-function getCurrentUrl() {
+export function getCurrentUrl() {
   if (typeof window === 'undefined') {
     throw new Error('getCurrentUrl can only be called in the browser')
   }

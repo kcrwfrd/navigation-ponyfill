@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { Navigation } from '../Navigation'
+import { Navigation, getCurrentUrl } from '../Navigation'
 import { NavigationCurrentEntryChangeEvent } from '../NavigationCurrentEntryChangeEvent'
 
 describe('Navigation', () => {
@@ -496,6 +496,18 @@ describe('Navigation', () => {
         .calls[0][0] as NavigationCurrentEntryChangeEvent
       expect(event.navigationType).toBe('push')
       expect(event.from.url).toBe('/initial')
+    })
+  })
+
+  describe('getCurrentUrl', () => {
+    it('should throw error when called during SSR', () => {
+      vi.stubGlobal('window', undefined)
+
+      expect(() => {
+        getCurrentUrl()
+      }).toThrow('getCurrentUrl can only be called in the browser')
+
+      vi.unstubAllGlobals()
     })
   })
 })
