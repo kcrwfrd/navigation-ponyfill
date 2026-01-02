@@ -266,6 +266,22 @@ describe('Navigation', () => {
         history.replaceState(true, '', '/path')
       }).toThrow(TypeError)
     })
+
+    it('should accept null state', () => {
+      expect(() => {
+        history.replaceState(null, '', '/path')
+      }).not.toThrow()
+
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
+    })
+
+    it('should accept undefined state', () => {
+      expect(() => {
+        history.replaceState(undefined, '', '/path')
+      }).not.toThrow()
+
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
+    })
   })
 
   describe('popstate handling', () => {
