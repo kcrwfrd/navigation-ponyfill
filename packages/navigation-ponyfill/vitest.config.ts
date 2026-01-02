@@ -10,12 +10,11 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.spec.ts', 'src/__tests__/**', 'src/__mocks__/**'],
-      // @todo increase thresholds
       thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 70,
-        statements: 70,
+        lines: 96,
+        functions: 96,
+        branches: 96,
+        statements: 96,
       },
     },
   },
