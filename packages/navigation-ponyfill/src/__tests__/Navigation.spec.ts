@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { Navigation } from '../Navigation'
+import { Navigation, getCurrentUrl } from '../Navigation'
 import { NavigationCurrentEntryChangeEvent } from '../NavigationCurrentEntryChangeEvent'
 
 describe('Navigation', () => {
@@ -158,6 +158,30 @@ describe('Navigation', () => {
         history.pushState({ valid: 'object' }, '', '/path')
       }).not.toThrow()
     })
+
+    it('should handle empty string URL', () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      expect(() => {
+        history.pushState({}, '', '')
+      }).not.toThrow()
+
+      expect(handler).toHaveBeenCalledTimes(1)
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
+    })
+
+    it('should handle undefined URL', () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      expect(() => {
+        history.pushState({}, '')
+      }).not.toThrow()
+
+      expect(handler).toHaveBeenCalledTimes(1)
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
+    })
   })
 
   describe('monkey-patched replaceState', () => {
@@ -241,6 +265,22 @@ describe('Navigation', () => {
       expect(() => {
         history.replaceState(true, '', '/path')
       }).toThrow(TypeError)
+    })
+
+    it('should accept null state', () => {
+      expect(() => {
+        history.replaceState(null, '', '/path')
+      }).not.toThrow()
+
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
+    })
+
+    it('should accept undefined state', () => {
+      expect(() => {
+        history.replaceState(undefined, '', '/path')
+      }).not.toThrow()
+
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
     })
   })
 
@@ -472,6 +512,18 @@ describe('Navigation', () => {
         .calls[0][0] as NavigationCurrentEntryChangeEvent
       expect(event.navigationType).toBe('push')
       expect(event.from.url).toBe('/initial')
+    })
+  })
+
+  describe('getCurrentUrl', () => {
+    it('should throw error when called during SSR', () => {
+      vi.stubGlobal('window', undefined)
+
+      expect(() => {
+        getCurrentUrl()
+      }).toThrow('getCurrentUrl can only be called in the browser')
+
+      vi.unstubAllGlobals()
     })
   })
 })

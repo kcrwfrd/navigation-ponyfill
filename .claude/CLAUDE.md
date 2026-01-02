@@ -17,6 +17,14 @@ npm run dev:next         # Start Next.js example app at localhost:3000
 npm run build            # Build the library (tsc)
 npm run clean            # Remove dist/ directory
 
+# Tests
+npm run test
+npm run test:coverage
+npm run test:types
+
+# To run a single test file for navigation-ponyfill
+npm run test -- src/__tests__/file.spec.ts
+
 # Code quality
 npm run lint             # ESLint
 npm run format           # Prettier (no semicolons, single quotes)

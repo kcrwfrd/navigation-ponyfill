@@ -3,5 +3,14 @@
  * @todo flesh out further
  */
 export class NavigationHistoryEntry {
-  constructor(public readonly url: string | null) {}
+  public readonly url!: string | null
+
+  constructor(url: string | null) {
+    Object.defineProperty(this, 'url', {
+      value: url,
+      writable: false,
+      enumerable: true,
+      configurable: false,
+    })
+  }
 }
