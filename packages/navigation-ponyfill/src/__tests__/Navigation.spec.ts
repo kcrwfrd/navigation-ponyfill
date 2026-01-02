@@ -158,6 +158,30 @@ describe('Navigation', () => {
         history.pushState({ valid: 'object' }, '', '/path')
       }).not.toThrow()
     })
+
+    it('should handle empty string URL', () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      expect(() => {
+        history.pushState({}, '', '')
+      }).not.toThrow()
+
+      expect(handler).toHaveBeenCalledTimes(1)
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
+    })
+
+    it('should handle undefined URL', () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      expect(() => {
+        history.pushState({}, '')
+      }).not.toThrow()
+
+      expect(handler).toHaveBeenCalledTimes(1)
+      expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
+    })
   })
 
   describe('monkey-patched replaceState', () => {
