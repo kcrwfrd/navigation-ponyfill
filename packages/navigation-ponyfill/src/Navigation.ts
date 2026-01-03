@@ -41,18 +41,18 @@ export class Navigation extends EventTarget {
     ) {
       assertStateIsObjectOrNullish(ogState)
 
-      const previousPath = getCurrentUrl()
+      const previousUrl = getCurrentUrl()
 
       const state = {
         ...(ogState ?? {}),
         [Navigation.KEY]: {
           canGoBack: true,
-          previousPath,
+          previousUrl,
         },
       }
 
       // @todo use this.currentEntry instead of instantiating here
-      const currentEntry = new NavigationHistoryEntry(previousPath)
+      const currentEntry = new NavigationHistoryEntry(previousUrl)
 
       self.#pushState(state, _unused, url)
 
@@ -75,8 +75,8 @@ export class Navigation extends EventTarget {
         ...(ogState ?? {}),
         [Navigation.KEY]: {
           canGoBack: self.#history.state?.[Navigation.KEY]?.canGoBack ?? false,
-          previousPath:
-            self.#history.state?.[Navigation.KEY]?.previousPath ?? null,
+          previousUrl:
+            self.#history.state?.[Navigation.KEY]?.previousUrl ?? null,
         },
       }
 
@@ -131,7 +131,7 @@ export function getCurrentUrl() {
     throw new Error('getCurrentUrl can only be called in the browser')
   }
 
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`
+  return window.location.href
 }
 
 /**
