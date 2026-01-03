@@ -75,10 +75,12 @@ describe('Navigation', () => {
       expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
     })
 
-    it('should capture previousPath from current location', () => {
+    it('should capture previousUrl from current location', () => {
       history.pushState({}, '', '/new-path')
 
-      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/initial')
+      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
+        'http://localhost:3000/initial',
+      )
     })
 
     it('should preserve original state properties', () => {
@@ -108,7 +110,7 @@ describe('Navigation', () => {
 
       const event = handler.mock
         .calls[0][0] as NavigationCurrentEntryChangeEvent
-      expect(event.from.url).toBe('/initial')
+      expect(event.from.url).toBe('http://localhost:3000/initial')
     })
 
     it('should throw TypeError when state is a primitive string', () => {
@@ -212,22 +214,20 @@ describe('Navigation', () => {
       expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(false)
     })
 
-    it('should preserve existing previousPath from previous state', () => {
-      // Push sets previousPath
+    it('should preserve existing previousUrl from previous state', () => {
+      // Push sets previousUrl
       history.pushState({}, '', '/second')
-      const previousPath = history.state.__NAVIGATION_PONYFILL.previousPath
+      const previousUrl = history.state.__NAVIGATION_PONYFILL.previousUrl
 
-      // Replace should preserve previousPath
+      // Replace should preserve previousUrl
       history.replaceState({}, '', '/replaced')
-      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe(
-        previousPath,
-      )
+      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(previousUrl)
     })
 
-    it('should default previousPath to null when no previous state', () => {
+    it('should default previousUrl to null when no previous state', () => {
       history.replaceState({}, '', '/replaced')
 
-      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe(null)
+      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(null)
     })
 
     it('should dispatch currententrychange event with type "replace"', () => {
@@ -250,7 +250,7 @@ describe('Navigation', () => {
 
       const event = handler.mock
         .calls[0][0] as NavigationCurrentEntryChangeEvent
-      expect(event.from.url).toBe('/initial')
+      expect(event.from.url).toBe('http://localhost:3000/initial')
     })
 
     it('should throw TypeError for primitive state values', () => {
@@ -452,18 +452,24 @@ describe('Navigation', () => {
       expect(handler).toHaveBeenCalledTimes(1)
     })
 
-    it('should track previousPath through multiple navigations', () => {
+    it('should track previousUrl through multiple navigations', () => {
       history.pushState({}, '', '/page1')
-      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/initial')
+      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
+        'http://localhost:3000/initial',
+      )
 
       history.pushState({}, '', '/page2')
-      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/page1')
+      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
+        'http://localhost:3000/page1',
+      )
 
       history.pushState({}, '', '/page3')
-      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/page2')
+      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
+        'http://localhost:3000/page2',
+      )
     })
 
-    it('should preserve canGoBack and previousPath when replaceState is used mid-chain', () => {
+    it('should preserve canGoBack and previousUrl when replaceState is used mid-chain', () => {
       history.pushState({}, '', '/page1')
       history.pushState({}, '', '/page2')
 
@@ -471,7 +477,9 @@ describe('Navigation', () => {
       history.replaceState({ replaced: true }, '', '/page2-replaced')
 
       expect(nav.canGoBack).toBe(true)
-      expect(history.state.__NAVIGATION_PONYFILL.previousPath).toBe('/page1')
+      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
+        'http://localhost:3000/page1',
+      )
       expect(history.state.replaced).toBe(true)
     })
 
@@ -488,9 +496,9 @@ describe('Navigation', () => {
       const events = handler.mock.calls.map(
         (call) => call[0] as NavigationCurrentEntryChangeEvent,
       )
-      expect(events[0].from.url).toBe('/initial')
-      expect(events[1].from.url).toBe('/page1')
-      expect(events[2].from.url).toBe('/page2')
+      expect(events[0].from.url).toBe('http://localhost:3000/initial')
+      expect(events[1].from.url).toBe('http://localhost:3000/page1')
+      expect(events[2].from.url).toBe('http://localhost:3000/page2')
     })
 
     it('should preserve user state alongside navigation metadata', () => {
@@ -511,7 +519,7 @@ describe('Navigation', () => {
       const event = handler.mock
         .calls[0][0] as NavigationCurrentEntryChangeEvent
       expect(event.navigationType).toBe('push')
-      expect(event.from.url).toBe('/initial')
+      expect(event.from.url).toBe('http://localhost:3000/initial')
     })
   })
 
