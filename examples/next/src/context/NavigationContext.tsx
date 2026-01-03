@@ -82,6 +82,7 @@ const getSnapshot = (): NavigationState => {
         url = new URL(rawState.previousUrl)
       }
     } catch (error) {
+      console.error(`Failed to parse previous URL: ${rawState?.previousUrl}`)
       console.error(error)
       url = null
     }
