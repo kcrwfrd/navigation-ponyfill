@@ -74,9 +74,21 @@ const getSnapshot = (): NavigationState => {
 
   if (rawState !== cachedRawState) {
     cachedRawState = rawState
+
+    let url: URL | null = null
+
+    try {
+      if (rawState?.previousUrl) {
+        url = new URL(rawState.previousUrl)
+      }
+    } catch (error) {
+      console.error(error)
+      url = null
+    }
+
     cachedSnapshot = {
       canGoBack: rawState?.canGoBack ?? false,
-      previousPath: rawState?.previousPath ?? null,
+      previousPath: url ? url.pathname + url.search + url.hash : null,
       ready: true,
     }
   }
