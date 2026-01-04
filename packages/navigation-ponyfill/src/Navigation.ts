@@ -27,6 +27,8 @@ export class Navigation extends EventTarget {
   #replaceState: History['replaceState']
 
   #popstateHandler: ((event: PopStateEvent) => void) | null = null
+  // @todo decide if we keep or remove hashchangeHandler
+  #hashchangeHandler: ((event: HashChangeEvent) => void) | null = null
 
   constructor(history: History | HistoryShim) {
     super()
@@ -138,7 +140,28 @@ export class Navigation extends EventTarget {
     }
 
     if (typeof window !== 'undefined') {
-      this.#popstateHandler = (_event: PopStateEvent) => {
+      this.#popstateHandler = (event: PopStateEvent) => {
+        if (!event.state) {
+          /**
+           * @todo
+           * A hashchange (e.g. from `<a href="#foo">` or `location.hash = 'foo'`)
+           * will trigger a popstate event with a null state.
+           *
+           * Unlike intercepting pushState and replaceState, the history entry
+           * and state have already changed at this point. We will need to
+           * implement `currentEntry` for our own reference so we can determine
+           * whether to emit a `push` or `traverse` event.
+           *
+           * @note
+           * If we wish to augument history.state with history.replaceState at
+           * this point, we must retrieve the previous entries state so that we
+           * can merge it, otherwise we will cause Next.js to reload.
+           *
+           * @see https://github.com/vercel/next.js/blob/4fa7d80eb9183273cc531623bb45606942b438d6/packages/next/src/client/components/app-router.tsx#L364-L373
+           */
+          return
+        }
+
         const previousEntry = self.#stack.currentEntry
         const meta = self.#history.state?.[Navigation.KEY]
 
@@ -288,6 +311,12 @@ export class Navigation extends EventTarget {
     if (this.#popstateHandler) {
       window.removeEventListener('popstate', this.#popstateHandler)
       this.#popstateHandler = null
+    }
+
+    // @todo decide if we keep or remove hashchangeHandler
+    if (this.#hashchangeHandler) {
+      window.removeEventListener('hashchange', this.#hashchangeHandler)
+      this.#hashchangeHandler = null
     }
   }
 }
