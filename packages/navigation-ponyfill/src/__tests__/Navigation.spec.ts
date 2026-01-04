@@ -327,20 +327,33 @@ describe('Navigation', () => {
       nav = new Navigation(history)
     })
 
-    it('should dispatch currententrychange event on popstate', () => {
+    it('should dispatch currententrychange event on popstate with state', () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      window.dispatchEvent(new PopStateEvent('popstate', { state: {} }))
+
+      expect(handler).toHaveBeenCalledTimes(1)
+    })
+
+    it('should not dispatch currententrychange event on popstate with null state', () => {
+      /**
+       * This is either a hashchange event or some other strange state where
+       * state has become null.
+       */
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
       window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
 
-      expect(handler).toHaveBeenCalledTimes(1)
+      expect(handler).not.toHaveBeenCalled()
     })
 
     it('should set navigationType to "traverse"', () => {
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
-      window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
+      window.dispatchEvent(new PopStateEvent('popstate', { state: {} }))
 
       const event = handler.mock
         .calls[0][0] as NavigationCurrentEntryChangeEvent
