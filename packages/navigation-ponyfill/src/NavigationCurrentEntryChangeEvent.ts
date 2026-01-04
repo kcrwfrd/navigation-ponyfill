@@ -17,9 +17,9 @@ export class NavigationCurrentEntryChangeEvent extends Event {
   readonly navigationType!: NavigationType | null
 
   constructor(type: EventType, options: NavigationCurrentEntryChangeEventInit) {
-    super(type, { bubbles: false, cancelable: false, ...options })
+    const { from, navigationType = null, ...restOptions } = options
 
-    const { from, navigationType = null } = options
+    super(type, { bubbles: false, cancelable: false, ...restOptions })
 
     Object.defineProperty(this, 'from', {
       value: from,
