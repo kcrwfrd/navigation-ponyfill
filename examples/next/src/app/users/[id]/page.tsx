@@ -35,7 +35,31 @@ export default async function UserPage({
 
   return (
     <main className="max-w-lg mx-auto px-4 py-4">
-      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
+      <nav className="flex gap-3 mb-4 text-sm">
+        <a
+          href="#profile"
+          className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+        >
+          Profile
+        </a>
+        <a
+          href="#posts"
+          className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+        >
+          Posts
+        </a>
+        <a
+          href="#stats"
+          className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+        >
+          Stats
+        </a>
+      </nav>
+
+      <div
+        id="profile"
+        className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6"
+      >
         <div className="flex items-center gap-4">
           <UserAvatar initials={user.avatar} size="lg" />
           <div>
@@ -47,7 +71,10 @@ export default async function UserPage({
         </div>
       </div>
 
-      <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-4">
+      <h2
+        id="posts"
+        className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-4"
+      >
         Posts
       </h2>
 
