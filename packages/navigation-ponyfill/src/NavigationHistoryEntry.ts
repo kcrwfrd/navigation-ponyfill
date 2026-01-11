@@ -65,6 +65,10 @@ export class NavigationHistoryEntry extends EventTarget {
   /**
    * Returns the index of this entry in the navigation history entries list,
    * or -1 if the entry is no longer in the list.
+   *
+   * @todo
+   * Consider using Object.defineProperty to set this property as well.
+   * The index shouldn't really change much, only to -1 when disposed.
    */
   get index(): number {
     return this.#getIndex()
