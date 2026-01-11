@@ -252,7 +252,13 @@ export class Navigation extends EventTarget {
   }
 
   get canGoBack() {
-    return this.#history.state?.[Navigation.KEY]?.canGoBack ?? false
+    /**
+     * @todo wonder if we should make this.#stack.entries public so we don't
+     * need to create a new array every time we call canGoBack.
+     */
+    const entries = this.entries()
+    const prevIndex = (this.currentEntry?.index ?? 0) - 1
+    return entries[prevIndex] ? true : false
   }
 
   /**
