@@ -240,8 +240,10 @@ export class Navigation extends EventTarget {
   /**
    * Returns the current NavigationHistoryEntry.
    */
-  get currentEntry(): NavigationHistoryEntry | null {
-    return this.#stack.currentEntry
+  get currentEntry(): NavigationHistoryEntry {
+    // We assert to simplify types for consumers.
+    // Once constructor has completed it should be reliably non-null.
+    return this.#stack.currentEntry!
   }
 
   /**
