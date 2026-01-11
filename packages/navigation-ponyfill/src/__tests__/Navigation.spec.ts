@@ -534,4 +534,303 @@ describe('Navigation', () => {
       vi.unstubAllGlobals()
     })
   })
+
+  describe('currentEntry', () => {
+    beforeEach(() => {
+      nav = new Navigation(history)
+    })
+
+    it('should return a NavigationHistoryEntry on initialization', () => {
+      expect(nav.currentEntry).not.toBeNull()
+      expect(nav.currentEntry?.url).toBe('http://localhost:3000/initial')
+    })
+
+    it('should have id and key properties', () => {
+      expect(nav.currentEntry?.id).toBeDefined()
+      expect(typeof nav.currentEntry?.id).toBe('string')
+      expect(nav.currentEntry?.key).toBeDefined()
+      expect(typeof nav.currentEntry?.key).toBe('string')
+    })
+
+    it('should have index of 0 on fresh initialization', () => {
+      expect(nav.currentEntry?.index).toBe(0)
+    })
+
+    it('should update after pushState', () => {
+      const initialEntry = nav.currentEntry
+      const initialId = initialEntry?.id
+      const initialKey = initialEntry?.key
+
+      history.pushState({}, '', '/page1')
+
+      expect(nav.currentEntry).not.toBe(initialEntry)
+      expect(nav.currentEntry?.id).not.toBe(initialId)
+      expect(nav.currentEntry?.key).not.toBe(initialKey)
+      expect(nav.currentEntry?.url).toBe('http://localhost:3000/page1')
+      expect(nav.currentEntry?.index).toBe(1)
+    })
+
+    it('should update after replaceState with same key but different id', () => {
+      const initialKey = nav.currentEntry?.key
+      const initialId = nav.currentEntry?.id
+
+      history.replaceState({}, '', '/replaced')
+
+      expect(nav.currentEntry?.key).toBe(initialKey)
+      expect(nav.currentEntry?.id).not.toBe(initialId)
+      expect(nav.currentEntry?.url).toBe('http://localhost:3000/replaced')
+    })
+
+    it('should have sameDocument set to true', () => {
+      expect(nav.currentEntry?.sameDocument).toBe(true)
+    })
+
+    it('should return state via getState()', () => {
+      history.pushState({ foo: 'bar' }, '', '/page1')
+
+      expect(nav.currentEntry?.getState()).toEqual({ foo: 'bar' })
+    })
+  })
+
+  describe('entries()', () => {
+    beforeEach(() => {
+      nav = new Navigation(history)
+    })
+
+    it('should return array with single entry on initialization', () => {
+      const entries = nav.entries()
+      expect(entries).toHaveLength(1)
+      expect(entries[0]).toBe(nav.currentEntry)
+    })
+
+    it('should grow after multiple pushState calls', () => {
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+      history.pushState({}, '', '/page3')
+
+      const entries = nav.entries()
+      expect(entries).toHaveLength(4)
+      expect(entries[0].url).toBe('http://localhost:3000/initial')
+      expect(entries[1].url).toBe('http://localhost:3000/page1')
+      expect(entries[2].url).toBe('http://localhost:3000/page2')
+      expect(entries[3].url).toBe('http://localhost:3000/page3')
+    })
+
+    it('should return shallow copy', () => {
+      const entries1 = nav.entries()
+      const entries2 = nav.entries()
+
+      expect(entries1).not.toBe(entries2)
+      expect(entries1).toEqual(entries2)
+    })
+
+    it('entries should have correct index values', () => {
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+
+      const entries = nav.entries()
+      expect(entries[0].index).toBe(0)
+      expect(entries[1].index).toBe(1)
+      expect(entries[2].index).toBe(2)
+    })
+
+    it('should preserve same key on replaceState', () => {
+      const initialKey = nav.currentEntry?.key
+
+      history.replaceState({}, '', '/replaced')
+
+      const entries = nav.entries()
+      expect(entries).toHaveLength(1)
+      expect(entries[0].key).toBe(initialKey)
+    })
+  })
+
+  describe('entry tracking through traversal', () => {
+    beforeEach(() => {
+      nav = new Navigation(history)
+    })
+
+    it('should track entries correctly through multiple pushState calls', () => {
+      // This test verifies that entries are tracked correctly
+      // Real popstate traversal testing requires browser integration tests
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+
+      const entries = nav.entries()
+      expect(entries).toHaveLength(3)
+      expect(entries[0].url).toBe('http://localhost:3000/initial')
+      expect(entries[1].url).toBe('http://localhost:3000/page1')
+      expect(entries[2].url).toBe('http://localhost:3000/page2')
+
+      // Current entry should be the last one
+      expect(nav.currentEntry).toBe(entries[2])
+      expect(nav.currentEntry?.index).toBe(2)
+    })
+
+    it('entries should track through pushState calls', () => {
+      history.pushState({}, '', '/page1')
+      const page1Entry = nav.entries()[1]
+
+      history.pushState({}, '', '/page2')
+      const page2Entry = nav.entries()[2]
+
+      expect(page1Entry.key).not.toBe(page2Entry.key)
+      expect(nav.currentEntry).toBe(page2Entry)
+    })
+
+    it('should dispatch event with correct from entry on pushState', () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      const initialEntry = nav.currentEntry
+
+      history.pushState({}, '', '/page1')
+
+      const event = handler.mock
+        .calls[0][0] as NavigationCurrentEntryChangeEvent
+      expect(event.from).toBe(initialEntry)
+    })
+
+    it('should dispatch event with correct from entry on replaceState', () => {
+      history.pushState({}, '', '/page1')
+
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      const currentEntryBeforeReplace = nav.currentEntry
+
+      history.replaceState({}, '', '/page1-replaced')
+
+      const event = handler.mock
+        .calls[0][0] as NavigationCurrentEntryChangeEvent
+      expect(event.from).toBe(currentEntryBeforeReplace)
+    })
+  })
+
+  describe('state storage in entries', () => {
+    beforeEach(() => {
+      nav = new Navigation(history)
+    })
+
+    it('should store user state in entry via getState()', () => {
+      history.pushState({ data: 'test', count: 42 }, '', '/page1')
+
+      expect(nav.currentEntry?.getState()).toEqual({ data: 'test', count: 42 })
+    })
+
+    it('should preserve state through pushState', () => {
+      history.pushState({ first: true }, '', '/page1')
+      history.pushState({ second: true }, '', '/page2')
+
+      const entries = nav.entries()
+      expect(entries[1].getState()).toEqual({ first: true })
+      expect(entries[2].getState()).toEqual({ second: true })
+    })
+
+    it('getState returns clone, not reference', () => {
+      history.pushState({ value: 1 }, '', '/page1')
+
+      const state1 = nav.currentEntry?.getState() as { value: number }
+      const state2 = nav.currentEntry?.getState() as { value: number }
+
+      expect(state1).toEqual(state2)
+      expect(state1).not.toBe(state2)
+
+      state1.value = 999
+      expect(nav.currentEntry?.getState()).toEqual({ value: 1 })
+    })
+  })
+
+  describe('dispose event', () => {
+    beforeEach(() => {
+      nav = new Navigation(history)
+    })
+
+    it('should dispatch dispose event when entry is replaced', () => {
+      const disposeHandler = vi.fn()
+      nav.currentEntry?.addEventListener('dispose', disposeHandler)
+
+      history.replaceState({}, '', '/replaced')
+
+      expect(disposeHandler).toHaveBeenCalledTimes(1)
+    })
+
+    it('should dispatch dispose event when entry is replaced via replaceState', () => {
+      history.pushState({}, '', '/page1')
+
+      const page1Entry = nav.currentEntry!
+      const disposeHandler = vi.fn()
+      page1Entry.addEventListener('dispose', disposeHandler)
+
+      // Replace current entry - should dispatch dispose on old entry
+      history.replaceState({}, '', '/page1-replaced')
+
+      expect(disposeHandler).toHaveBeenCalledTimes(1)
+    })
+
+    it('disposed entry should return index -1 after being replaced', () => {
+      history.pushState({}, '', '/page1')
+
+      const page1Entry = nav.currentEntry!
+      expect(page1Entry.index).toBe(1)
+
+      // Replace current entry
+      history.replaceState({}, '', '/page1-replaced')
+
+      // Old entry should now have index -1 since it's no longer in the list
+      expect(page1Entry.index).toBe(-1)
+
+      // New entry should have the correct index
+      expect(nav.currentEntry?.index).toBe(1)
+    })
+
+    it('should dispatch dispose events for truncated forward history entries', async () => {
+      // Push multiple entries
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+      history.pushState({}, '', '/page3')
+
+      const entries = nav.entries()
+      expect(entries).toHaveLength(4)
+
+      // Set up dispose handlers on the entries that will be truncated
+      const page2Entry = entries[2]
+      const page3Entry = entries[3]
+      const disposeHandler2 = vi.fn()
+      const disposeHandler3 = vi.fn()
+      page2Entry.addEventListener('dispose', disposeHandler2)
+      page3Entry.addEventListener('dispose', disposeHandler3)
+
+      // Go back twice to get to page1
+      const popstate1 = waitForPopstate()
+      history.back()
+      await popstate1
+
+      const popstate2 = waitForPopstate()
+      history.back()
+      await popstate2
+
+      // Verify we're at page1
+      expect(nav.currentEntry?.url).toBe('http://localhost:3000/page1')
+
+      // Push a new entry - should truncate page2 and page3
+      history.pushState({}, '', '/page4')
+
+      expect(disposeHandler2).toHaveBeenCalledTimes(1)
+      expect(disposeHandler3).toHaveBeenCalledTimes(1)
+    })
+  })
 })
+
+/**
+ * Helper to wait for popstate, so we can await completion of history traversal
+ */
+function waitForPopstate() {
+  return new Promise<void>((resolve) => {
+    const handler = () => {
+      window.removeEventListener('popstate', handler)
+      resolve()
+    }
+    window.addEventListener('popstate', handler)
+  })
+}

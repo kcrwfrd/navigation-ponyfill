@@ -2,10 +2,18 @@ import { describe, it, expect } from 'vitest'
 import { NavigationCurrentEntryChangeEvent } from '../NavigationCurrentEntryChangeEvent'
 import { NavigationHistoryEntry } from '../NavigationHistoryEntry'
 
+function createEntry(url: string | null): NavigationHistoryEntry {
+  return new NavigationHistoryEntry({
+    id: 'test-id',
+    key: 'test-key',
+    url,
+  })
+}
+
 describe('NavigationCurrentEntryChangeEvent', () => {
   describe('constructor', () => {
     it('should extend Event class', () => {
-      const entry = new NavigationHistoryEntry('/from')
+      const entry = createEntry('/from')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -18,7 +26,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should have type "currententrychange"', () => {
-      const entry = new NavigationHistoryEntry('/from')
+      const entry = createEntry('/from')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -33,7 +41,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
 
   describe('from property', () => {
     it('should return NavigationHistoryEntry from options', () => {
-      const entry = new NavigationHistoryEntry('/previous-page')
+      const entry = createEntry('/previous-page')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -47,7 +55,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should handle entry with null URL', () => {
-      const entry = new NavigationHistoryEntry(null)
+      const entry = createEntry(null)
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -62,7 +70,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
 
   describe('navigationType property', () => {
     it('should accept "push" type', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -75,7 +83,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should accept "replace" type', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -88,7 +96,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should accept "traverse" type', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -101,7 +109,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should accept "reload" type', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -114,7 +122,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should handle null navigationType', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -127,7 +135,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should coerce undefined navigationType to null', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -142,7 +150,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
 
   describe('inherited Event properties', () => {
     it('should support bubbles option', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -156,7 +164,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should support cancelable option', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -170,7 +178,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should default bubbles to false', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -183,7 +191,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should default cancelable to false', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -196,7 +204,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should default composed to false', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -211,7 +219,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
 
   describe('readonly properties', () => {
     it('should not allow reassigning from property', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
@@ -220,7 +228,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
         },
       )
 
-      const newEntry = new NavigationHistoryEntry('/other')
+      const newEntry = createEntry('/other')
 
       expect(() => {
         // @ts-expect-error
@@ -230,7 +238,7 @@ describe('NavigationCurrentEntryChangeEvent', () => {
     })
 
     it('should not allow reassigning navigationType property', () => {
-      const entry = new NavigationHistoryEntry('/path')
+      const entry = createEntry('/path')
       const event = new NavigationCurrentEntryChangeEvent(
         'currententrychange',
         {
