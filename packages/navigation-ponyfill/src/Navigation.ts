@@ -73,11 +73,11 @@ export class Navigation extends EventTarget {
       // Create and push new entry
       const newEntry = new NavigationHistoryEntry({
         id,
+        index: self.#stack.currentIndex + 1,
         key,
         url: resolveUrl(url),
         state: ogState,
         sameDocument: true,
-        getIndex: () => self.#stack.getIndexById(id),
       })
 
       self.#stack.push(newEntry)
@@ -119,11 +119,11 @@ export class Navigation extends EventTarget {
       // Create replacement entry (same key, new id)
       const newEntry = new NavigationHistoryEntry({
         id,
+        index: self.#stack.currentIndex,
         key,
         url: resolveUrl(url) ?? getCurrentUrl(),
         state: ogState,
         sameDocument: true,
-        getIndex: () => self.#stack.getIndexById(id),
       })
 
       self.#stack.replace(newEntry)
@@ -166,11 +166,11 @@ export class Navigation extends EventTarget {
             const entryId = meta.entryId ?? generateId()
             const newEntry = new NavigationHistoryEntry({
               id: entryId,
+              index: self.#stack.currentIndex + 1,
               key: meta.entryKey,
               url: getCurrentUrl(),
               state: getUserState(self.#history.state),
               sameDocument: true,
-              getIndex: () => self.#stack.getIndexById(entryId),
             })
 
             self.#stack.push(newEntry)
@@ -190,57 +190,51 @@ export class Navigation extends EventTarget {
 
   /**
    * Initialize the entries stack with the current entry.
+   *
+   * If the stack has rehydrated entries from sessionStorage and we can find
+   * the current entry by id from history.state, we'll use that entry.
+   * Otherwise, we create a fresh entry.
    */
   #initializeCurrentEntry(): void {
     const existingMeta = this.#history.state?.[Navigation.KEY]
 
-    /**
-     * @todo when NavigationHistoryEntriesStack rehydrates from sessionStorage
-     * it will already create the current NavigationHistoryEntry if it already
-     * has an entryKey.
-     *
-     * We'll only need to create the current entry if existingMeta doesn't exist.
-     */
-    if (existingMeta?.entryId) {
-      // Rehydrating from existing state (e.g., page reload)
-      const entryId = existingMeta.entryId
-      const entry = new NavigationHistoryEntry({
-        id: entryId,
-        key: existingMeta.entryKey,
-        url: typeof window !== 'undefined' ? getCurrentUrl() : null,
-        state: getUserState(this.#history.state),
-        sameDocument: true,
-        getIndex: () => this.#stack.getIndexById(entryId),
-      })
-      this.#stack.push(entry)
-    } else {
-      // Fresh initialization - create initial entry
-      const id = generateId()
-      const key = generateId()
-      const entry = new NavigationHistoryEntry({
-        id,
-        key,
-        url: typeof window !== 'undefined' ? getCurrentUrl() : null,
-        state: getUserState(this.#history.state),
-        sameDocument: true,
-        getIndex: () => this.#stack.getIndexById(id),
-      })
-      this.#stack.push(entry)
-
-      // Persist to history state (only if we can)
-      if (typeof window !== 'undefined') {
-        this.#replaceState(
-          {
-            ...(this.#history.state ?? {}),
-            [Navigation.KEY]: {
-              ...this.#history.state?.[Navigation.KEY],
-              entryId: id,
-              entryKey: key,
-            },
-          },
-          '',
-        )
+    // Check if stack has rehydrated entries and we can find the current one
+    if (existingMeta?.entryId && this.#stack.entries().length > 0) {
+      const existingEntry = this.#stack.findById(existingMeta.entryId)
+      if (existingEntry) {
+        // Entry found in rehydrated stack - set currentIndex to its position
+        this.#stack.setCurrentIndex(existingEntry.index)
+        return
       }
+      // Entry not found - might have been truncated, fall through to create new
+    }
+
+    // Fresh initialization or entry not found - create initial entry
+    const id = generateId()
+    const key = existingMeta?.entryKey ?? generateId()
+    const entry = new NavigationHistoryEntry({
+      id,
+      index: this.#stack.entries().length, // Append to end of any existing entries
+      key,
+      sameDocument: true,
+      state: getUserState(this.#history.state),
+      url: typeof window !== 'undefined' ? getCurrentUrl() : null,
+    })
+    this.#stack.push(entry)
+
+    // Persist to history state (only if we can)
+    if (typeof window !== 'undefined') {
+      this.#replaceState(
+        {
+          ...(this.#history.state ?? {}),
+          [Navigation.KEY]: {
+            ...this.#history.state?.[Navigation.KEY],
+            entryId: id,
+            entryKey: key,
+          },
+        },
+        '',
+      )
     }
   }
 

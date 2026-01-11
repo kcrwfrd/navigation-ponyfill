@@ -1,13 +1,21 @@
 import { NavigationHistoryEntry } from './NavigationHistoryEntry'
 
+const STORAGE_KEY = '__NAVIGATION_PONYFILL_ENTRIES'
+
 /**
  * Manages the stack of NavigationHistoryEntry objects.
  * Handles push, replace, and traverse operations while maintaining
  * the current position in the stack.
+ *
+ * Entries are persisted to sessionStorage so they survive page reloads.
  */
 export class NavigationHistoryEntriesStack {
   #entries: NavigationHistoryEntry[] = []
   #currentIndex: number = -1
+
+  constructor() {
+    this.#load()
+  }
 
   /**
    * Returns the current entry, or null if stack is empty.
@@ -35,28 +43,30 @@ export class NavigationHistoryEntriesStack {
 
   /**
    * Push a new entry, truncating any forward history.
-   * Dispatches 'dispose' event on removed entries.
+   * Disposes removed entries.
    */
   push(entry: NavigationHistoryEntry): void {
-    // Truncate forward history and dispatch dispose on removed entries
+    // Truncate forward history and dispose removed entries
     const removedEntries = this.#entries.splice(this.#currentIndex + 1)
     for (const removed of removedEntries) {
-      removed.dispatchEvent(new Event('dispose'))
+      removed._setDisposed()
     }
 
     this.#entries.push(entry)
     this.#currentIndex = this.#entries.length - 1
+    this.#save()
   }
 
   /**
    * Replace the current entry with a new one.
-   * Dispatches 'dispose' event on the old entry.
+   * Disposes the old entry.
    */
   replace(entry: NavigationHistoryEntry): void {
     if (this.#currentIndex >= 0 && this.#currentIndex < this.#entries.length) {
       const oldEntry = this.#entries[this.#currentIndex]
-      oldEntry.dispatchEvent(new Event('dispose'))
+      oldEntry._setDisposed()
       this.#entries[this.#currentIndex] = entry
+      this.#save()
     } else {
       // If stack is empty, treat replace as push
       this.push(entry)
@@ -95,5 +105,90 @@ export class NavigationHistoryEntriesStack {
    */
   getIndexById(id: string): number {
     return this.#entries.findIndex((entry) => entry.id === id)
+  }
+
+  /**
+   * Find an entry by id.
+   */
+  findById(id: string): NavigationHistoryEntry | null {
+    return this.#entries.find((entry) => entry.id === id) ?? null
+  }
+
+  /**
+   * Set the current index. Called by Navigation after loading to sync
+   * with the current history.state entry.
+   */
+  setCurrentIndex(index: number): void {
+    this.#currentIndex = index
+  }
+
+  /**
+   * Save entries to sessionStorage.
+   */
+  #save(): void {
+    if (typeof sessionStorage === 'undefined') return
+
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          entries: this.#entries,
+        }),
+      )
+    } catch (error) {
+      console.error(
+        `Failed to save navigation-ponyfill entries to sessionStorage with storage key: '${STORAGE_KEY}'`,
+      )
+      console.error(error)
+    }
+  }
+
+  /**
+   * Load entries from sessionStorage.
+   */
+  #load(): void {
+    if (typeof sessionStorage === 'undefined') return
+
+    try {
+      const stored = sessionStorage.getItem(STORAGE_KEY)
+      if (!stored) return
+
+      const { entries = [] } = JSON.parse(stored)
+
+      this.#entries = entries.map(
+        (data: {
+          id: string
+          key: string
+          url: string | null
+          index: number
+          state?: unknown
+          sameDocument?: boolean
+        }) =>
+          new NavigationHistoryEntry({
+            id: data.id,
+            key: data.key,
+            url: data.url,
+            index: data.index,
+            state: data.state,
+            sameDocument: data.sameDocument,
+          }),
+      )
+      // currentIndex is NOT loaded - Navigation will set it based on history.state
+      this.#currentIndex = -1
+    } catch (error) {
+      console.error(
+        `Failed to load navigation-ponyfill entries from sessionStorage with storage key: '${STORAGE_KEY}'`,
+      )
+      console.error(error)
+    }
+  }
+
+  /**
+   * Clear persisted data from sessionStorage.
+   */
+  static clearStorage(): void {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(STORAGE_KEY)
+    }
   }
 }

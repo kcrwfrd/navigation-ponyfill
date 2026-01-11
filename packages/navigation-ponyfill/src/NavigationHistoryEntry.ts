@@ -3,8 +3,8 @@
  */
 
 export interface NavigationHistoryEntryInit {
-  getIndex?: () => number
   id: string
+  index: number
   key: string
   sameDocument?: boolean
   state?: unknown
@@ -24,14 +24,14 @@ export class NavigationHistoryEntry extends EventTarget {
   public readonly url!: string | null
 
   #state: unknown
-  #getIndex: () => number
+  #index: number
 
   constructor(init: NavigationHistoryEntryInit) {
     super()
 
     this.#state =
       init.state !== undefined ? structuredClone(init.state) : undefined
-    this.#getIndex = init.getIndex ?? (() => -1)
+    this.#index = init.index
 
     Object.defineProperty(this, 'id', {
       value: init.id,
@@ -65,13 +65,9 @@ export class NavigationHistoryEntry extends EventTarget {
   /**
    * Returns the index of this entry in the navigation history entries list,
    * or -1 if the entry is no longer in the list.
-   *
-   * @todo
-   * Consider using Object.defineProperty to set this property as well.
-   * The index shouldn't really change much, only to -1 when disposed.
    */
   get index(): number {
-    return this.#getIndex()
+    return this.#index
   }
 
   /**
@@ -79,5 +75,30 @@ export class NavigationHistoryEntry extends EventTarget {
    */
   getState(): unknown {
     return this.#state !== undefined ? structuredClone(this.#state) : undefined
+  }
+
+  /**
+   * Called by the stack when this entry is disposed (removed or replaced).
+   * Sets index to -1 and dispatches 'dispose' event.
+   * @internal
+   */
+  _setDisposed(): void {
+    this.#index = -1
+    this.dispatchEvent(new Event('dispose'))
+  }
+
+  /**
+   * Returns a JSON-serializable representation of this entry.
+   * Used for persisting to sessionStorage.
+   */
+  toJSON(): NavigationHistoryEntryInit {
+    return {
+      id: this.id,
+      index: this.#index,
+      key: this.key,
+      sameDocument: this.sameDocument,
+      state: this.getState(),
+      url: this.url,
+    }
   }
 }
