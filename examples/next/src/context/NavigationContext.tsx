@@ -10,6 +10,10 @@ import { navigation, Navigation } from 'navigation-ponyfill'
 
 interface NavigationState {
   canGoBack: boolean
+  /**
+   * `previousPath` is useful because we can render a back button as a link,
+   * so that user can open it in a new tab if they want to.
+   */
   previousPath: string | null
   /**
    * Whether the navigation state has been hydrated on the client.
@@ -67,28 +71,32 @@ const SERVER_SNAPSHOT: NavigationState = {
  * @see https://react.dev/reference/react/useSyncExternalStore#im-getting-an-error-the-result-of-getsnapshot-should-be-cached
  */
 let cachedSnapshot: NavigationState | null = null
-let cachedRawState: unknown = null
+let cachedEntryId: string | null = null
 
 const getSnapshot = (): NavigationState => {
-  const rawState = window.history.state?.[Navigation.KEY]
+  const entryId = navigation.currentEntry.id
 
-  if (rawState !== cachedRawState) {
-    cachedRawState = rawState
+  if (entryId !== cachedEntryId) {
+    cachedEntryId = entryId
+
+    const entries = navigation.entries()
+    const prevIndex = (navigation.currentEntry?.index ?? 0) - 1
+    const prevEntry = entries[prevIndex] ? entries[prevIndex] : null
 
     let url: URL | null = null
 
     try {
-      if (rawState?.previousUrl) {
-        url = new URL(rawState.previousUrl)
+      if (prevEntry?.url) {
+        url = new URL(prevEntry.url)
       }
     } catch (error) {
-      console.error(`Failed to parse previous URL: ${rawState?.previousUrl}`)
+      console.error(`Failed to parse previous URL: ${prevEntry?.url}`)
       console.error(error)
       url = null
     }
 
     cachedSnapshot = {
-      canGoBack: rawState?.canGoBack ?? false,
+      canGoBack: navigation.canGoBack,
       previousPath: url ? url.pathname + url.search + url.hash : null,
       ready: true,
     }
