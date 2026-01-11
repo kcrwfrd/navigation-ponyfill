@@ -7,6 +7,7 @@ function createEntry(url: string | null): NavigationHistoryEntry {
     id: 'test-id',
     key: 'test-key',
     url,
+    index: 0,
   })
 }
 

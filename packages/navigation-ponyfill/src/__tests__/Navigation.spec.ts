@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Navigation, getCurrentUrl } from '../Navigation'
 import { NavigationCurrentEntryChangeEvent } from '../NavigationCurrentEntryChangeEvent'
+import { NavigationHistoryEntriesStack } from '../NavigationHistoryEntriesStack'
 
 describe('Navigation', () => {
   let nav: Navigation
   const history = window.history
 
   beforeEach(() => {
+    // Clear sessionStorage to prevent entries from previous tests affecting this one
+    NavigationHistoryEntriesStack.clearStorage()
     // Reset history state
     history.replaceState(null, '', '/initial')
   })
@@ -322,6 +325,7 @@ describe('Navigation', () => {
     it('should return false when __NAVIGATION_PONYFILL is missing', () => {
       // Use unpatched replaceState to set state without metadata
       nav.destroy()
+      NavigationHistoryEntriesStack.clearStorage()
       history.replaceState({ noMetadata: true }, '', '/path')
       nav = new Navigation(history)
 

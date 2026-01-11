@@ -4,12 +4,13 @@ import { NavigationHistoryEntry } from '../NavigationHistoryEntry'
 
 function createEntry(
   key: string,
-  options: { id?: string; url?: string } = {},
+  options: { id?: string; url?: string; index?: number } = {},
 ): NavigationHistoryEntry {
   return new NavigationHistoryEntry({
     id: options.id ?? `id-${key}`,
     key,
     url: options.url ?? `/page-${key}`,
+    index: options.index ?? 0,
   })
 }
 
@@ -17,6 +18,8 @@ describe('NavigationHistoryEntriesStack', () => {
   let stack: NavigationHistoryEntriesStack
 
   beforeEach(() => {
+    // Clear sessionStorage before each test
+    NavigationHistoryEntriesStack.clearStorage()
     stack = new NavigationHistoryEntriesStack()
   })
 
@@ -292,6 +295,136 @@ describe('NavigationHistoryEntriesStack', () => {
       expect(entries[0]).toBe(entry1)
       expect(entries[1]).toBe(entry2)
       expect(entries[2]).toBe(entry3)
+    })
+  })
+
+  describe('findById()', () => {
+    it('should find entry by id', () => {
+      const entry1 = createEntry('a', { id: 'entry-1' })
+      const entry2 = createEntry('b', { id: 'entry-2' })
+
+      stack.push(entry1)
+      stack.push(entry2)
+
+      expect(stack.findById('entry-1')).toBe(entry1)
+      expect(stack.findById('entry-2')).toBe(entry2)
+    })
+
+    it('should return null for unknown id', () => {
+      const entry = createEntry('a', { id: 'entry-1' })
+      stack.push(entry)
+
+      expect(stack.findById('unknown')).toBe(null)
+    })
+  })
+
+  describe('setCurrentIndex()', () => {
+    it('should set the current index', () => {
+      const entry1 = createEntry('a', { index: 0 })
+      const entry2 = createEntry('b', { index: 1 })
+      const entry3 = createEntry('c', { index: 2 })
+
+      stack.push(entry1)
+      stack.push(entry2)
+      stack.push(entry3)
+
+      stack.setCurrentIndex(1)
+
+      expect(stack.currentIndex).toBe(1)
+      expect(stack.currentEntry).toBe(entry2)
+    })
+  })
+
+  describe('sessionStorage persistence', () => {
+    it('should save entries to sessionStorage on push', () => {
+      const entry = createEntry('a', { id: 'entry-1', index: 0 })
+      stack.push(entry)
+
+      const stored = sessionStorage.getItem('__NAVIGATION_PONYFILL_ENTRIES')
+      expect(stored).not.toBe(null)
+
+      const parsed = JSON.parse(stored!)
+      expect(parsed.entries).toHaveLength(1)
+      expect(parsed.entries[0].id).toBe('entry-1')
+    })
+
+    it('should save entries to sessionStorage on replace', () => {
+      const entry1 = createEntry('a', { id: 'entry-1', index: 0 })
+      stack.push(entry1)
+
+      const entry2 = createEntry('a', { id: 'entry-2', index: 0 })
+      stack.replace(entry2)
+
+      const stored = sessionStorage.getItem('__NAVIGATION_PONYFILL_ENTRIES')
+      const parsed = JSON.parse(stored!)
+      expect(parsed.entries).toHaveLength(1)
+      expect(parsed.entries[0].id).toBe('entry-2')
+    })
+
+    it('should load entries from sessionStorage on construction', () => {
+      // First, create a stack and add entries
+      const entry1 = createEntry('a', { id: 'entry-1', index: 0 })
+      const entry2 = createEntry('b', { id: 'entry-2', index: 1 })
+      stack.push(entry1)
+      stack.push(entry2)
+
+      // Create a new stack - it should load from sessionStorage
+      const newStack = new NavigationHistoryEntriesStack()
+
+      expect(newStack.entries()).toHaveLength(2)
+      expect(newStack.entries()[0].id).toBe('entry-1')
+      expect(newStack.entries()[1].id).toBe('entry-2')
+    })
+
+    it('should not persist currentIndex (it should be -1 after reload)', () => {
+      const entry1 = createEntry('a', { index: 0 })
+      const entry2 = createEntry('b', { index: 1 })
+      stack.push(entry1)
+      stack.push(entry2)
+
+      // Current index is 1 now
+      expect(stack.currentIndex).toBe(1)
+
+      // Create a new stack - currentIndex should be -1 (not loaded)
+      const newStack = new NavigationHistoryEntriesStack()
+
+      expect(newStack.currentIndex).toBe(-1)
+      expect(newStack.currentEntry).toBe(null)
+    })
+
+    it('should preserve entry state through persistence', () => {
+      const entry = new NavigationHistoryEntry({
+        id: 'entry-1',
+        key: 'key-1',
+        url: '/page',
+        index: 0,
+        state: { counter: 42, nested: { value: 'test' } },
+        sameDocument: true,
+      })
+      stack.push(entry)
+
+      const newStack = new NavigationHistoryEntriesStack()
+      const loadedEntry = newStack.entries()[0]
+
+      expect(loadedEntry.getState()).toEqual({
+        counter: 42,
+        nested: { value: 'test' },
+      })
+    })
+  })
+
+  describe('clearStorage()', () => {
+    it('should remove entries from sessionStorage', () => {
+      const entry = createEntry('a')
+      stack.push(entry)
+
+      expect(sessionStorage.getItem('__NAVIGATION_PONYFILL_ENTRIES')).not.toBe(
+        null,
+      )
+
+      NavigationHistoryEntriesStack.clearStorage()
+
+      expect(sessionStorage.getItem('__NAVIGATION_PONYFILL_ENTRIES')).toBe(null)
     })
   })
 })
