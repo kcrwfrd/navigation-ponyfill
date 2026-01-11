@@ -9,6 +9,13 @@ import { HistoryShim } from './HistoryShim'
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Navigation
  */
 export class Navigation extends EventTarget {
+  /**
+   * @todo
+   * We can remove public access to this now that entries() / currentEntry are supported.
+   * Apps can use those APIs to grab the previous URL in a way that's compatible
+   * with native Navigation API instead of looking at history.state directly.
+   * @deprecated
+   */
   static readonly KEY = '__NAVIGATION_PONYFILL'
   #history: History | HistoryShim
   #stack: NavigationHistoryEntriesStack
