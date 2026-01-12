@@ -155,6 +155,7 @@ export class NavigationHistoryEntriesStack {
 
       const { entries = [] } = JSON.parse(stored)
 
+      // @todo consider validating entries before instantiation
       this.#entries = entries.map(
         (data: {
           id: string

@@ -202,7 +202,13 @@ export class Navigation extends EventTarget {
     if (existingMeta?.entryId && this.#stack.entries().length > 0) {
       const existingEntry = this.#stack.findById(existingMeta.entryId)
       if (existingEntry) {
-        // Entry found in rehydrated stack - set currentIndex to its position
+        /**
+         * Entry found in rehydrated stack - set currentIndex to its position
+         *
+         * @todo consider that if existingEntry.index does not match its actual
+         * position in the stack, we're in a corrupted state.
+         * Should we handle and recover from this?
+         */
         this.#stack.setCurrentIndex(existingEntry.index)
         return
       }
@@ -240,10 +246,13 @@ export class Navigation extends EventTarget {
 
   /**
    * Returns the current NavigationHistoryEntry.
+   *
+   * Note: we assert to simplify types for consumers.
+   * Once constructor has completed it should be reliably non-null.
+   *
+   * In library code, consider treating as possibly null.
    */
   get currentEntry(): NavigationHistoryEntry {
-    // We assert to simplify types for consumers.
-    // Once constructor has completed it should be reliably non-null.
     return this.#stack.currentEntry!
   }
 
