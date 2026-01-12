@@ -55,7 +55,6 @@ export class Navigation extends EventTarget {
       assertStateIsObjectOrNullish(ogState)
 
       const previousEntry = self.#stack.currentEntry
-      const previousUrl = getCurrentUrl()
 
       const id = generateId()
       const key = generateId()
@@ -63,8 +62,6 @@ export class Navigation extends EventTarget {
       const state = {
         ...(ogState ?? {}),
         [Navigation.KEY]: {
-          canGoBack: true,
-          previousUrl,
           entryId: id,
           entryKey: key,
         },
@@ -109,8 +106,6 @@ export class Navigation extends EventTarget {
       const state = {
         ...(ogState ?? {}),
         [Navigation.KEY]: {
-          canGoBack: existingMeta?.canGoBack ?? false,
-          previousUrl: existingMeta?.previousUrl ?? null,
           entryId: id,
           entryKey: key,
         },

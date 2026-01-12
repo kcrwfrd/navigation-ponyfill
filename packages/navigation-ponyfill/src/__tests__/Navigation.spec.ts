@@ -72,18 +72,17 @@ describe('Navigation', () => {
       expect(history.state.foo).toBe('bar')
     })
 
-    it('should set canGoBack to true in metadata', () => {
+    it('should set canGoBack to true after push', () => {
       history.pushState({}, '', '/new-path')
 
-      expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
+      expect(nav.canGoBack).toBe(true)
     })
 
-    it('should capture previousUrl from current location', () => {
+    it('should track previous entry URL from current location', () => {
       history.pushState({}, '', '/new-path')
 
-      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
-        'http://localhost:3000/initial',
-      )
+      const prevIndex = nav.currentEntry.index - 1
+      expect(nav.entries()[prevIndex].url).toBe('http://localhost:3000/initial')
     })
 
     it('should preserve original state properties', () => {
@@ -201,36 +200,41 @@ describe('Navigation', () => {
       expect(history.state.foo).toBe('bar')
     })
 
-    it('should preserve existing canGoBack value from previous state', () => {
+    it('should preserve canGoBack after replaceState', () => {
       // First push to set canGoBack to true
       history.pushState({}, '', '/first')
-      expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
+      expect(nav.canGoBack).toBe(true)
 
-      // Replace should preserve canGoBack
+      // Replace should preserve canGoBack (still have entry at index 0)
       history.replaceState({}, '', '/replaced')
-      expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(true)
+      expect(nav.canGoBack).toBe(true)
     })
 
-    it('should default canGoBack to false when no previous state', () => {
+    it('should have canGoBack false when no previous entries', () => {
       history.replaceState({}, '', '/replaced')
 
-      expect(history.state.__NAVIGATION_PONYFILL.canGoBack).toBe(false)
+      expect(nav.canGoBack).toBe(false)
     })
 
-    it('should preserve existing previousUrl from previous state', () => {
-      // Push sets previousUrl
+    it('should preserve previous entry URL after replaceState', () => {
+      // Push creates an entry we can go back to
       history.pushState({}, '', '/second')
-      const previousUrl = history.state.__NAVIGATION_PONYFILL.previousUrl
+      const entries = nav.entries()
+      const previousUrl = entries[0].url
 
-      // Replace should preserve previousUrl
+      // Replace should not affect the previous entry
       history.replaceState({}, '', '/replaced')
-      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(previousUrl)
+      const entriesAfterReplace = nav.entries()
+      expect(entriesAfterReplace[0].url).toBe(previousUrl)
     })
 
-    it('should default previousUrl to null when no previous state', () => {
+    it('should have no previous entry on fresh initialization', () => {
       history.replaceState({}, '', '/replaced')
 
-      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(null)
+      const entries = nav.entries()
+      expect(entries.length).toBe(1)
+      // No previous entry to go back to
+      expect(entries[0].url).toBe('http://localhost:3000/replaced')
     })
 
     it('should dispatch currententrychange event with type "replace"', () => {
@@ -332,7 +336,7 @@ describe('Navigation', () => {
       expect(nav.canGoBack).toBe(false)
     })
 
-    it('should return true when canGoBack in metadata is true', () => {
+    it('should return true when there is a previous entry', () => {
       history.pushState({}, '', '/new-path')
 
       expect(nav.canGoBack).toBe(true)
@@ -456,34 +460,33 @@ describe('Navigation', () => {
       expect(handler).toHaveBeenCalledTimes(1)
     })
 
-    it('should track previousUrl through multiple navigations', () => {
+    it('should track previous entry URL through multiple navigations', () => {
+      const getPreviousUrl = () => {
+        const prevIndex = nav.currentEntry.index - 1
+        return nav.entries()[prevIndex]?.url ?? null
+      }
+
       history.pushState({}, '', '/page1')
-      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
-        'http://localhost:3000/initial',
-      )
+      expect(getPreviousUrl()).toBe('http://localhost:3000/initial')
 
       history.pushState({}, '', '/page2')
-      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
-        'http://localhost:3000/page1',
-      )
+      expect(getPreviousUrl()).toBe('http://localhost:3000/page1')
 
       history.pushState({}, '', '/page3')
-      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
-        'http://localhost:3000/page2',
-      )
+      expect(getPreviousUrl()).toBe('http://localhost:3000/page2')
     })
 
-    it('should preserve canGoBack and previousUrl when replaceState is used mid-chain', () => {
+    it('should preserve canGoBack and previous entry when replaceState is used mid-chain', () => {
       history.pushState({}, '', '/page1')
       history.pushState({}, '', '/page2')
 
-      // Replace current entry - should preserve navigation metadata
+      // Replace current entry - should preserve previous entries
       history.replaceState({ replaced: true }, '', '/page2-replaced')
 
       expect(nav.canGoBack).toBe(true)
-      expect(history.state.__NAVIGATION_PONYFILL.previousUrl).toBe(
-        'http://localhost:3000/page1',
-      )
+      // Previous entry should still be page1
+      const prevIndex = nav.currentEntry.index - 1
+      expect(nav.entries()[prevIndex].url).toBe('http://localhost:3000/page1')
       expect(history.state.replaced).toBe(true)
     })
 
