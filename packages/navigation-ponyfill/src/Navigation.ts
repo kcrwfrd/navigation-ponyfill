@@ -157,7 +157,7 @@ export class Navigation extends EventTarget {
              *
              * @todo think through this edge case some more
              */
-            console.warn(
+            console.error(
               'targetEntry not found on popstate for navigation state:',
               meta,
             )
