@@ -157,22 +157,32 @@ export class NavigationHistoryEntriesStack {
 
       // @todo consider validating entries before instantiation
       this.#entries = entries.map(
-        (data: {
-          id: string
-          key: string
-          url: string | null
-          index: number
-          state?: unknown
-          sameDocument?: boolean
-        }) =>
-          new NavigationHistoryEntry({
+        (
+          data: {
+            id: string
+            key: string
+            url: string | null
+            index: number
+            state?: unknown
+            sameDocument?: boolean
+          },
+          index: number,
+        ) => {
+          if (data.index !== index) {
+            console.warn(
+              `NavigationHistoryEntry index mismatch: ${data.index} !== ${index} for entry id '${data.id}'`,
+            )
+          }
+
+          return new NavigationHistoryEntry({
             id: data.id,
             key: data.key,
             url: data.url,
-            index: data.index,
+            index: index,
             state: data.state,
             sameDocument: data.sameDocument,
-          }),
+          })
+        },
       )
       // currentIndex is NOT loaded - Navigation will set it based on history.state
       this.#currentIndex = -1

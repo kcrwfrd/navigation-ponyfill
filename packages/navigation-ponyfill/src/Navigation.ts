@@ -193,13 +193,7 @@ export class Navigation extends EventTarget {
     if (existingMeta?.entryId && this.#stack.entries().length > 0) {
       const existingEntry = this.#stack.findById(existingMeta.entryId)
       if (existingEntry) {
-        /**
-         * Entry found in rehydrated stack - set currentIndex to its position
-         *
-         * @todo consider that if existingEntry.index does not match its actual
-         * position in the stack, we're in a corrupted state.
-         * Should we handle and recover from this?
-         */
+        // Entry found in rehydrated stack - set currentIndex to its position
         this.#stack.setCurrentIndex(existingEntry.index)
         return
       }
