@@ -289,6 +289,37 @@ describe('Navigation', () => {
 
       expect(history.state.__NAVIGATION_PONYFILL).toBeDefined()
     })
+
+    it('should generate a new entryId and use the same entryKey', () => {
+      const { entryId: ogId, entryKey: ogKey } =
+        history.state.__NAVIGATION_PONYFILL
+
+      history.replaceState(null, '', '/no-entrykey')
+
+      const { entryId, entryKey } = history.state.__NAVIGATION_PONYFILL
+
+      expect(entryId).toBeTruthy()
+      expect(entryId).not.toBe(ogId)
+      expect(entryKey).toBe(ogKey)
+    })
+
+    it('should generate new key when history.state has no existing entryKey', () => {
+      const { entryId: ogId, entryKey: ogKey } =
+        history.state.__NAVIGATION_PONYFILL
+
+      delete history.state.__NAVIGATION_PONYFILL.entryKey
+
+      expect(history.state.__NAVIGATION_PONYFILL.entryKey).toBeUndefined()
+
+      history.replaceState(null, '', '/no-entrykey')
+
+      const { entryId, entryKey } = history.state.__NAVIGATION_PONYFILL
+
+      expect(entryId).toBeTruthy()
+      expect(entryId).not.toBe(ogId)
+      expect(entryKey).toBeTruthy()
+      expect(entryKey).not.toBe(ogKey)
+    })
   })
 
   describe('popstate handling', () => {
