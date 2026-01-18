@@ -450,4 +450,109 @@ describe('NavigationHistoryEntriesStack', () => {
       expect(sessionStorage.getItem('__NAVIGATION_PONYFILL_ENTRIES')).toBe(null)
     })
   })
+
+  describe('sessionStorage error handling', () => {
+    it('should warn when entry index mismatches array position', () => {
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
+
+      // Manually store entries with mismatched indices
+      const entriesData = {
+        entries: [
+          {
+            id: 'id-1',
+            key: 'key-1',
+            url: '/page1',
+            index: 5,
+            sameDocument: true,
+          },
+          {
+            id: 'id-2',
+            key: 'key-2',
+            url: '/page2',
+            index: 10,
+            sameDocument: true,
+          },
+        ],
+      }
+      sessionStorage.setItem(
+        '__NAVIGATION_PONYFILL_ENTRIES',
+        JSON.stringify(entriesData),
+      )
+
+      // Create a new stack which loads from sessionStorage
+      const newStack = new NavigationHistoryEntriesStack()
+
+      // Should have loaded the entries
+      expect(newStack.entries()).toHaveLength(2)
+
+      // Should have warned about index mismatch
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(2)
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "NavigationHistoryEntry index mismatch: 5 !== 0 for entry id 'id-1'",
+      )
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "NavigationHistoryEntry index mismatch: 10 !== 1 for entry id 'id-2'",
+      )
+
+      // Entries should have corrected indices
+      expect(newStack.entries()[0].index).toBe(0)
+      expect(newStack.entries()[1].index).toBe(1)
+
+      consoleWarnSpy.mockRestore()
+    })
+
+    it('should log error when sessionStorage contains invalid JSON', () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      // Store invalid JSON
+      sessionStorage.setItem(
+        '__NAVIGATION_PONYFILL_ENTRIES',
+        'invalid json {{{',
+      )
+
+      // Create a new stack which attempts to load from sessionStorage
+      const newStack = new NavigationHistoryEntriesStack()
+
+      // Should have empty entries due to parse failure
+      expect(newStack.entries()).toHaveLength(0)
+
+      // Should have logged error
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to load navigation-ponyfill entries from sessionStorage with storage key: '__NAVIGATION_PONYFILL_ENTRIES'",
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(2) // Error message + actual error
+
+      consoleErrorSpy.mockRestore()
+    })
+
+    it('should log error when sessionStorage save fails', () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      vi.stubGlobal('sessionStorage', {
+        setItem: vi.fn().mockImplementation(() => {
+          throw new Error('QuotaExceededError')
+        }),
+      })
+
+      // Push an entry - this triggers save which should fail
+      const entry = createEntry('a')
+      stack.push(entry)
+
+      // Should have logged error
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to save navigation-ponyfill entries to sessionStorage with storage key: '__NAVIGATION_PONYFILL_ENTRIES'",
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(2) // Error message + actual error
+
+      // Restore mocks
+      consoleErrorSpy.mockRestore()
+      vi.unstubAllGlobals()
+    })
+  })
 })
