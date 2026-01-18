@@ -154,7 +154,7 @@ export class Navigation extends EventTarget {
             console.error(
               'targetEntry not found on popstate for navigation state:',
               meta,
-              'navigation-ponyfill is in an irrecoverable state.'
+              'navigation-ponyfill is in an irrecoverable state.',
             )
 
             // Set currentIndex to -1 to indicate an irrecoverable state
