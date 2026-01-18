@@ -951,7 +951,73 @@ describe('Navigation', () => {
       expect(disposeHandler3).toHaveBeenCalledTimes(1)
     })
   })
+
+  describe('sessionStorage rehydration', () => {
+    let nav: Navigation
+    let currentEntryId: string, currentEntryKey: string
+
+    beforeEach(() => {
+      // Create a Navigation and push some entries
+      nav = new Navigation(history)
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+
+      // Get the current entry's details
+      currentEntryId = nav.currentEntry.id
+      currentEntryKey = nav.currentEntry.key
+    })
+
+    afterEach(() => {
+      nav.destroy()
+      NavigationHistoryEntriesStack.clearStorage()
+    })
+
+    it('should rehydrate from sessionStorage and find existing entry by id', () => {
+      // Verify we have entries in the stack
+      expect(nav.entries().length).toBe(3)
+
+      // Destroy navigation but keep sessionStorage data
+      nav.destroy()
+
+      // Create a new Navigation - should rehydrate from sessionStorage
+      nav = new Navigation(history)
+
+      // Should have found the existing entry and set it as current
+      expect(nav.currentEntry).not.toBe(null)
+      expect(nav.currentEntry.id).toBe(currentEntryId)
+      expect(nav.currentEntry.key).toBe(currentEntryKey)
+      expect(nav.currentEntry.url).toBe('http://localhost:3000/page2')
+      expect(nav.currentEntry.index).toBe(2)
+
+      // Entries should be preserved from sessionStorage
+      expect(nav.entries().length).toBe(3)
+    })
+
+    it('should rehydrate with the correct entry if we have traversed history', async () => {
+      expect(nav.entries().length).toBe(3)
+
+      nav.destroy()
+
+      await back()
+      await back()
+
+      nav = new Navigation(history)
+
+      expect(nav.entries().length).toBe(3)
+      expect(nav.currentEntry.url).toBe('http://localhost:3000/initial')
+      expect(nav.currentEntry.index).toBe(0)
+    })
+  })
 })
+
+/**
+ * Helper to await backwards traversal
+ */
+async function back() {
+  const popstate = waitForPopstate()
+  history.back()
+  await popstate
+}
 
 /**
  * Helper to wait for popstate, so we can await completion of history traversal
