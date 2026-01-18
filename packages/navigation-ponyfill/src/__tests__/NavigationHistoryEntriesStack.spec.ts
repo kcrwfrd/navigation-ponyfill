@@ -318,6 +318,29 @@ describe('NavigationHistoryEntriesStack', () => {
     })
   })
 
+  describe('getIndexById()', () => {
+    it('should return correct index for id', () => {
+      const entry1 = createEntry('a', { id: 'entry-1' })
+      const entry2 = createEntry('b', { id: 'entry-2' })
+      const entry3 = createEntry('c', { id: 'entry-3' })
+
+      stack.push(entry1)
+      stack.push(entry2)
+      stack.push(entry3)
+
+      expect(stack.getIndexById('entry-1')).toBe(0)
+      expect(stack.getIndexById('entry-2')).toBe(1)
+      expect(stack.getIndexById('entry-3')).toBe(2)
+    })
+
+    it('should return -1 for unknown id', () => {
+      const entry = createEntry('a', { id: 'entry-1' })
+      stack.push(entry)
+
+      expect(stack.getIndexById('unknown')).toBe(-1)
+    })
+  })
+
   describe('setCurrentIndex()', () => {
     it('should set the current index', () => {
       const entry1 = createEntry('a', { index: 0 })
