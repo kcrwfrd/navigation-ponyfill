@@ -146,30 +146,26 @@ export class Navigation extends EventTarget {
             /**
              * Entry not found in our stack - this could happen if:
              * - Popstate occurs before ponyfill initialized and rehydrates from sessionStorage
-             * - History entry was created outside of navigation-ponyfill
-             * - Popstate occurs from a hashchange
+             * - History entry was created outside of navigation-ponyfill, perhaps before patching?
              * - ???
              *
-             * @todo think through this edge case some more
+             * @todo think through this edge case some more.
              */
             console.error(
               'targetEntry not found on popstate for navigation state:',
               meta,
+              'navigation-ponyfill is in an irrecoverable state.'
             )
 
-            // Create a new entry for this position
-            const entryId = meta.entryId ?? generateId()
-            const newEntry = new NavigationHistoryEntry({
-              id: entryId,
-              index: self.#stack.currentIndex + 1,
-              key: meta.entryKey,
-              url: getCurrentUrl(),
-              state: getUserState(self.#history.state),
-              sameDocument: true,
-            })
-
-            self.#stack.push(newEntry)
+            // Set currentIndex to -1 to indicate an irrecoverable state
+            self.#stack.setCurrentIndex(-1)
           }
+        } else {
+          /**
+           * @todo
+           * Handle if no history.state or no entryKey is found in history.state.
+           * This is probably due to a hashchange.
+           */
         }
 
         this.dispatchEvent(
