@@ -24,6 +24,14 @@ export class NavigationHistoryEntry extends EventTarget {
   public readonly url!: string | null
 
   #state: unknown
+
+  /**
+   * Manually setting #index is less robust than accepting a `getIndex()` function
+   * which will always return the correct index.
+   *
+   * We make this trade-off in order to avoid potential O(n^2) operations, but
+   * consider if that's the right decision if we run into problems in the future.
+   */
   #index: number
 
   constructor(init: NavigationHistoryEntryInit) {
