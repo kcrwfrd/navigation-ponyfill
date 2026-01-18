@@ -88,7 +88,12 @@ export class NavigationHistoryEntry extends EventTarget {
   /**
    * Called by the stack when this entry is disposed (removed or replaced).
    * Sets index to -1 and dispatches 'dispose' event.
-   * @internal
+   *
+   * @package
+   *
+   * @todo
+   * Consider refactoring as more robustly private/internal method with the use
+   * of a Symbol or a WeakMap shared between modules.
    */
   _setDisposed(): void {
     this.#index = -1
