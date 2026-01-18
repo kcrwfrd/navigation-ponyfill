@@ -124,9 +124,21 @@ export class NavigationHistoryEntriesStack {
 
   /**
    * Save entries to sessionStorage.
+   *
+   * @todo
+   * The entries array grows unbounded. Navigation-heavy SPAs could eventually
+   * exceed sessionStorage limits (typically 5-10MB), causing failures.
+   *
+   * Consider implementing a maximum entry count (e.g., 50 entries) with LRU eviction.
+   * Note: doing so would present challenges for `index` property on entries.
    */
   #save(): void {
-    if (typeof sessionStorage === 'undefined') return
+    if (typeof sessionStorage === 'undefined') {
+      console.warn(
+        'NavigationHistoryEntriesStack: sessionStorage is undefined, skipping save to sessionStorage',
+      )
+      return
+    }
 
     try {
       sessionStorage.setItem(
@@ -147,7 +159,12 @@ export class NavigationHistoryEntriesStack {
    * Load entries from sessionStorage.
    */
   #load(): void {
-    if (typeof sessionStorage === 'undefined') return
+    if (typeof sessionStorage === 'undefined') {
+      console.warn(
+        'NavigationHistoryEntriesStack: sessionStorage is undefined, skipping load from sessionStorage',
+      )
+      return
+    }
 
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY)
