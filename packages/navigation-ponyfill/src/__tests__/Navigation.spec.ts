@@ -616,6 +616,56 @@ describe('Navigation', () => {
     })
   })
 
+  describe('generateId fallback', () => {
+    it('should generate ID using fallback when crypto.randomUUID is unavailable', () => {
+      // Save original crypto
+      const originalCrypto = globalThis.crypto
+
+      // Mock crypto without randomUUID
+      vi.stubGlobal('crypto', {
+        getRandomValues: originalCrypto.getRandomValues,
+      })
+
+      nav = new Navigation(history)
+
+      // The entry should still have a valid ID
+      expect(nav.currentEntry?.id).toBeDefined()
+      expect(typeof nav.currentEntry?.id).toBe('string')
+      expect(nav.currentEntry!.id.length).toBeGreaterThan(0)
+
+      // ID should match the fallback format: timestamp-random
+      expect(nav.currentEntry!.id).toMatch(/^[a-z0-9]+-[a-z0-9]+$/)
+
+      vi.unstubAllGlobals()
+    })
+  })
+
+  describe('resolveUrl with URL object', () => {
+    beforeEach(() => {
+      nav = new Navigation(history)
+    })
+
+    it('should handle URL object parameter in pushState', () => {
+      const urlObj = new URL('/page-from-url-object', window.location.href)
+
+      history.pushState({}, '', urlObj)
+
+      expect(nav.currentEntry?.url).toBe(
+        'http://localhost:3000/page-from-url-object',
+      )
+    })
+
+    it('should handle URL object parameter in replaceState', () => {
+      const urlObj = new URL('/replaced-from-url-object', window.location.href)
+
+      history.replaceState({}, '', urlObj)
+
+      expect(nav.currentEntry?.url).toBe(
+        'http://localhost:3000/replaced-from-url-object',
+      )
+    })
+  })
+
   describe('currentEntry', () => {
     beforeEach(() => {
       nav = new Navigation(history)
