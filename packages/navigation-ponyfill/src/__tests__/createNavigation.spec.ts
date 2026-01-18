@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createNavigation } from '../createNavigation'
+import { NavigationHistoryEntriesStack } from '../NavigationHistoryEntriesStack'
 import { Navigation } from '../Navigation'
 import { HistoryShim } from '../HistoryShim'
 import { MockHistory } from '../__mocks__/historyMock'
 
 describe('createNavigation', () => {
+  beforeEach(() => {
+    NavigationHistoryEntriesStack.clearStorage()
+  })
+
   describe('browser environment', () => {
     beforeEach(() => {
       vi.stubGlobal('history', new MockHistory())
@@ -36,6 +41,7 @@ describe('createNavigation', () => {
   describe('SSR environment', () => {
     beforeEach(() => {
       vi.stubGlobal('window', undefined)
+      vi.stubGlobal('sessionStorage', undefined)
     })
 
     afterEach(() => {
