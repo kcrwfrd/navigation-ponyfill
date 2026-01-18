@@ -346,6 +346,49 @@ describe('Navigation', () => {
         .calls[0][0] as NavigationCurrentEntryChangeEvent
       expect(event.navigationType).toBe('traverse')
     })
+
+    it('should log error and set currentIndex to -1 when entry not found on popstate', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      // The popstate handler reads from history.state, not event.state
+      // We need to set history.state to have a key that doesn't exist in our stack
+      // Use the original (non-patched) replaceState to set the state without triggering events
+      nav.destroy()
+      NavigationHistoryEntriesStack.clearStorage()
+
+      // Set up history with a state that has a non-existent entry key
+      const fakeState = {
+        __NAVIGATION_PONYFILL: {
+          entryId: 'non-existent-id',
+          entryKey: 'non-existent-key',
+        },
+      }
+      history.replaceState(fakeState, '', '/test')
+      history.pushState({}, '', '/test2')
+
+      // Create a new Navigation - this will initialize with the current entry
+      nav = new Navigation(history)
+
+      const popstate1 = waitForPopstate()
+      history.back()
+      await popstate1
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'targetEntry not found on popstate for navigation state:',
+        fakeState.__NAVIGATION_PONYFILL,
+        'navigation-ponyfill is in an irrecoverable state.',
+      )
+
+      // currentEntry should be null since currentIndex is -1
+      expect(nav.currentEntry).toBe(null)
+
+      // canGoBack should use ?? 0 fallback when currentEntry is null
+      expect(nav.canGoBack).toBe(false)
+
+      consoleErrorSpy.mockRestore()
+    })
   })
 
   describe('canGoBack getter', () => {
