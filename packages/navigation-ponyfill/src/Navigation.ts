@@ -197,20 +197,33 @@ export class Navigation extends EventTarget {
         this.#stack.setCurrentIndex(existingEntry.index)
         return
       }
-      // Entry not found - might have been truncated, fall through to create new
+
+      /**
+       * Entry not found - might have been truncated, fall through to create new
+       *
+       * @todo edge cases might lurk here.
+       */
+      console.warn(
+        `entryId '${existingMeta.entryId}' found on history.state but entry not found in sessionStorage`,
+      )
     }
+
+    const entriesLength = this.#stack.entries().length
 
     // Fresh initialization or entry not found - create initial entry
     const id = generateId()
     const key = existingMeta?.entryKey ?? generateId()
     const entry = new NavigationHistoryEntry({
       id,
-      index: this.#stack.entries().length, // Append to end of any existing entries
+      index: entriesLength, // Append to end of any existing entries
       key,
       sameDocument: true,
       state: getUserState(this.#history.state),
       url: typeof window !== 'undefined' ? getCurrentUrl() : null,
     })
+    // make sure push doesn't truncate our entries
+    this.#stack.setCurrentIndex(entriesLength - 1)
+
     this.#stack.push(entry)
 
     // Persist to history state (only if we can)
