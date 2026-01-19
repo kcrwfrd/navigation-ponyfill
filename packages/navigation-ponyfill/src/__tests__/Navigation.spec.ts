@@ -396,9 +396,7 @@ describe('Navigation', () => {
       // Create a new Navigation - this will initialize with the current entry
       nav = new Navigation(history)
 
-      const popstate1 = waitForPopstate()
-      history.back()
-      await popstate1
+      await back()
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'targetEntry not found on popstate for navigation state:',
@@ -958,13 +956,8 @@ describe('Navigation', () => {
       page3Entry.addEventListener('dispose', disposeHandler3)
 
       // Go back twice to get to page1
-      const popstate1 = waitForPopstate()
-      history.back()
-      await popstate1
-
-      const popstate2 = waitForPopstate()
-      history.back()
-      await popstate2
+      await back()
+      await back()
 
       // Verify we're at page1
       expect(nav.currentEntry?.url).toBe('http://localhost:3000/page1')
