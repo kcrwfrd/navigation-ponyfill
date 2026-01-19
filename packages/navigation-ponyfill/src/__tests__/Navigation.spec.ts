@@ -407,7 +407,6 @@ describe('Navigation', () => {
       // currentEntry should be null since currentIndex is -1
       expect(nav.currentEntry).toBe(null)
 
-      // canGoBack should use ?? 0 fallback when currentEntry is null
       expect(nav.canGoBack).toBe(false)
 
       consoleErrorSpy.mockRestore()
@@ -805,8 +804,6 @@ describe('Navigation', () => {
     })
 
     it('should track entries correctly through multiple pushState calls', () => {
-      // This test verifies that entries are tracked correctly
-      // Real popstate traversal testing requires browser integration tests
       history.pushState({}, '', '/page1')
       history.pushState({}, '', '/page2')
 
