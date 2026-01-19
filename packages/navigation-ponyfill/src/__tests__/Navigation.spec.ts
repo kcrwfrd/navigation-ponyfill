@@ -81,7 +81,7 @@ describe('Navigation', () => {
     it('should track previous entry URL from current location', () => {
       history.pushState({}, '', '/new-path')
 
-      const prevIndex = nav.currentEntry.index - 1
+      const prevIndex = nav.currentEntry!.index - 1
       expect(nav.entries()[prevIndex].url).toBe('http://localhost:3000/initial')
     })
 
@@ -355,15 +355,15 @@ describe('Navigation', () => {
       history.pushState({}, '', '/page1')
       history.pushState({}, '', '/page2')
 
-      expect(nav.currentEntry.index).toBe(2)
-      expect(nav.currentEntry.url).toBe('http://localhost:3000/page2')
+      expect(nav.currentEntry!.index).toBe(2)
+      expect(nav.currentEntry!.url).toBe('http://localhost:3000/page2')
 
       // Navigate back
       await back()
 
       // Should have traversed to the correct entry
-      expect(nav.currentEntry.index).toBe(1)
-      expect(nav.currentEntry.url).toBe('http://localhost:3000/page1')
+      expect(nav.currentEntry!.index).toBe(1)
+      expect(nav.currentEntry!.url).toBe('http://localhost:3000/page1')
 
       expect(handler).toHaveBeenCalledTimes(3)
 
@@ -558,7 +558,7 @@ describe('Navigation', () => {
 
     it('should track previous entry URL through multiple navigations', () => {
       const getPreviousUrl = () => {
-        const prevIndex = nav.currentEntry.index - 1
+        const prevIndex = nav.currentEntry!.index - 1
         return nav.entries()[prevIndex]?.url ?? null
       }
 
@@ -581,7 +581,7 @@ describe('Navigation', () => {
 
       expect(nav.canGoBack).toBe(true)
       // Previous entry should still be page1
-      const prevIndex = nav.currentEntry.index - 1
+      const prevIndex = nav.currentEntry!.index - 1
       expect(nav.entries()[prevIndex].url).toBe('http://localhost:3000/page1')
       expect(history.state.replaced).toBe(true)
     })
@@ -978,8 +978,8 @@ describe('Navigation', () => {
       history.pushState({}, '', '/page2')
 
       // Get the current entry's details
-      currentEntryId = nav.currentEntry.id
-      currentEntryKey = nav.currentEntry.key
+      currentEntryId = nav.currentEntry!.id
+      currentEntryKey = nav.currentEntry!.key
     })
 
     afterEach(() => {
@@ -999,10 +999,10 @@ describe('Navigation', () => {
 
       // Should have found the existing entry and set it as current
       expect(nav.currentEntry).not.toBe(null)
-      expect(nav.currentEntry.id).toBe(currentEntryId)
-      expect(nav.currentEntry.key).toBe(currentEntryKey)
-      expect(nav.currentEntry.url).toBe('http://localhost:3000/page2')
-      expect(nav.currentEntry.index).toBe(2)
+      expect(nav.currentEntry!.id).toBe(currentEntryId)
+      expect(nav.currentEntry!.key).toBe(currentEntryKey)
+      expect(nav.currentEntry!.url).toBe('http://localhost:3000/page2')
+      expect(nav.currentEntry!.index).toBe(2)
 
       // Entries should be preserved from sessionStorage
       expect(nav.entries().length).toBe(3)
@@ -1019,8 +1019,8 @@ describe('Navigation', () => {
       nav = new Navigation(history)
 
       expect(nav.entries().length).toBe(3)
-      expect(nav.currentEntry.url).toBe('http://localhost:3000/initial')
-      expect(nav.currentEntry.index).toBe(0)
+      expect(nav.currentEntry!.url).toBe('http://localhost:3000/initial')
+      expect(nav.currentEntry!.index).toBe(0)
     })
 
     it('should call setCurrentIndex when rehydrated entry is found by id', () => {
@@ -1044,8 +1044,8 @@ describe('Navigation', () => {
       expect(setCurrentIndexSpy).toHaveBeenCalledWith(2)
 
       // Also verify the entry was properly set
-      expect(nav.currentEntry.id).toBe(currentEntryId)
-      expect(nav.currentEntry.index).toBe(2)
+      expect(nav.currentEntry!.id).toBe(currentEntryId)
+      expect(nav.currentEntry!.index).toBe(2)
 
       setCurrentIndexSpy.mockRestore()
     })
@@ -1069,9 +1069,9 @@ describe('Navigation', () => {
       nav = new Navigation(history)
 
       expect(nav.entries().length).toBe(4)
-      expect(nav.currentEntry.id).toBeTruthy()
-      expect(nav.currentEntry.url).toBe('http://localhost:3000/page3')
-      expect(nav.currentEntry.index).toBe(3)
+      expect(nav.currentEntry!.id).toBeTruthy()
+      expect(nav.currentEntry!.url).toBe('http://localhost:3000/page3')
+      expect(nav.currentEntry!.index).toBe(3)
     })
 
     it('should create new entry when history.state entryId does not match any rehydrated entries', () => {
@@ -1099,7 +1099,7 @@ describe('Navigation', () => {
 
       // A new entry should be created since the entryId wasn't found
       // The new entry should have a different ID than the non-existent one
-      expect(nav.currentEntry.id).not.toBe(nonExistentEntryId)
+      expect(nav.currentEntry!.id).not.toBe(nonExistentEntryId)
 
       /**
        * @todo
@@ -1109,7 +1109,7 @@ describe('Navigation', () => {
        * the history stack.
        */
       expect(nav.entries().length).toBe(4)
-      expect(nav.currentEntry.index).toBe(3)
+      expect(nav.currentEntry!.index).toBe(3)
     })
   })
 })

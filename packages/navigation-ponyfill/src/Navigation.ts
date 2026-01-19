@@ -243,15 +243,16 @@ export class Navigation extends EventTarget {
   }
 
   /**
-   * Returns the current NavigationHistoryEntry.
+   * Returns the current NavigationHistoryEntry, or null under certain special cases:
+   * - the polyfill enters a corrupted state (e.g., if popstate event references
+   *   an entry that doesn't exist in the stack)
+   * - certain conditions under the spec
    *
-   * Note: we assert to simplify types for consumers.
-   * Once constructor has completed it should be reliably non-null.
-   *
-   * In library code, consider treating as possibly null.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/Navigation/currentEntry
+   * @see https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-current-entry
    */
-  get currentEntry(): NavigationHistoryEntry {
-    return this.#stack.currentEntry!
+  get currentEntry(): NavigationHistoryEntry | null {
+    return this.#stack.currentEntry
   }
 
   /**
