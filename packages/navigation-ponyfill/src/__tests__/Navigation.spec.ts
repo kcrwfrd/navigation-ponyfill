@@ -347,6 +347,31 @@ describe('Navigation', () => {
       expect(event.navigationType).toBe('traverse')
     })
 
+    it('should traverse to entry on popstate if there is an entryKey and entry is found', async () => {
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      // Push entries to create traversal targets
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+
+      expect(nav.currentEntry.index).toBe(2)
+      expect(nav.currentEntry.url).toBe('http://localhost:3000/page2')
+
+      // Navigate back
+      await back()
+
+      // Should have traversed to the correct entry
+      expect(nav.currentEntry.index).toBe(1)
+      expect(nav.currentEntry.url).toBe('http://localhost:3000/page1')
+
+      expect(handler).toHaveBeenCalledTimes(3)
+
+      // Expect the last call to the handler to have an event with navigationType: 'traverse'
+      const lastEvent = handler.mock.calls[handler.mock.calls.length - 1][0]
+      expect(lastEvent.navigationType).toBe('traverse')
+    })
+
     it('should log error and set currentIndex to -1 when entry not found on popstate', async () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
