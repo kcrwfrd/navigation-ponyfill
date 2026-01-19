@@ -8,6 +8,15 @@ const STORAGE_KEY = '__NAVIGATION_PONYFILL_ENTRIES'
  * the current position in the stack.
  *
  * Entries are persisted to sessionStorage so they survive page reloads.
+ *
+ * @todo
+ * The entries array grows unbounded. Navigation-heavy SPAs could eventually
+ * exceed sessionStorage limits (typically 5-10MB), causing failures.
+ *
+ * Consider implementing a maximum entry count (e.g., 50 entries) with LRU eviction.
+ * Note: doing so would present challenges for `index` property on entries.
+ *
+ * @see https://github.com/whatwg/html/issues/8620
  */
 export class NavigationHistoryEntriesStack {
   #entries: NavigationHistoryEntry[] = []
@@ -124,13 +133,6 @@ export class NavigationHistoryEntriesStack {
 
   /**
    * Save entries to sessionStorage.
-   *
-   * @todo
-   * The entries array grows unbounded. Navigation-heavy SPAs could eventually
-   * exceed sessionStorage limits (typically 5-10MB), causing failures.
-   *
-   * Consider implementing a maximum entry count (e.g., 50 entries) with LRU eviction.
-   * Note: doing so would present challenges for `index` property on entries.
    */
   #save(): void {
     if (typeof sessionStorage === 'undefined') {
