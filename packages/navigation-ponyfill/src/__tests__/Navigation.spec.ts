@@ -445,6 +445,118 @@ describe('Navigation', () => {
     })
   })
 
+  describe('canGoForward', () => {
+    beforeEach(() => {
+      nav = new Navigation(history)
+    })
+
+    it('should return false on initial state with only one entry', () => {
+      expect(nav.canGoForward).toBe(false)
+    })
+
+    it('should return false when at the last entry after pushState', () => {
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+
+      // We are at the last entry
+      expect(nav.currentEntry?.index).toBe(2)
+      expect(nav.entries().length).toBe(3)
+      expect(nav.canGoForward).toBe(false)
+    })
+
+    it('should return true when there are entries ahead after going back', async () => {
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+
+      // Go back
+      await back()
+
+      // We are at page1, page2 is ahead
+      expect(nav.currentEntry?.url).toBe('http://localhost:3000/page1')
+      expect(nav.canGoForward).toBe(true)
+    })
+
+    it('should return false after replaceState on initial page', () => {
+      history.replaceState({}, '', '/replaced')
+
+      expect(nav.canGoForward).toBe(false)
+    })
+
+    it('should return false when currentEntry is null (corrupt state)', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      nav.destroy()
+      NavigationHistoryEntriesStack.clearStorage()
+
+      // Set up history with a non-existent entry key to trigger corrupt state
+      const fakeState = {
+        __NAVIGATION_PONYFILL: {
+          entryId: 'non-existent-id',
+          entryKey: 'non-existent-key',
+        },
+      }
+      history.replaceState(fakeState, '', '/test')
+      history.pushState({}, '', '/test2')
+
+      nav = new Navigation(history)
+
+      await back()
+
+      // Should be in corrupt state with currentEntry null
+      expect(nav.currentEntry).toBe(null)
+      expect(nav.canGoForward).toBe(false)
+
+      consoleErrorSpy.mockRestore()
+    })
+
+    it('should update correctly through navigation chain', async () => {
+      // Initial state - no forward history
+      expect(nav.canGoForward).toBe(false)
+
+      // Push entries
+      history.pushState({}, '', '/page1')
+      expect(nav.canGoForward).toBe(false)
+
+      history.pushState({}, '', '/page2')
+      expect(nav.canGoForward).toBe(false)
+
+      // Go back to page1
+      await back()
+      expect(nav.canGoForward).toBe(true)
+
+      // Go back to initial
+      await back()
+      expect(nav.canGoForward).toBe(true)
+
+      // Go forward to page1
+      await forward()
+
+      expect(nav.canGoForward).toBe(true)
+
+      // Go forward to page2 (last entry)
+      await forward()
+
+      expect(nav.canGoForward).toBe(false)
+    })
+
+    it('should return false when forward history is truncated by new push', async () => {
+      history.pushState({}, '', '/page1')
+      history.pushState({}, '', '/page2')
+
+      // Go back to page1
+      await back()
+      expect(nav.canGoForward).toBe(true)
+
+      // Push a new entry - this truncates page2
+      history.pushState({}, '', '/page3')
+
+      // No forward history anymore
+      expect(nav.canGoForward).toBe(false)
+    })
+  })
+
   describe('destroy()', () => {
     it('should restore original pushState method', () => {
       const originalPushState = history.pushState
@@ -1120,6 +1232,15 @@ describe('Navigation', () => {
 async function back() {
   const popstate = waitForPopstate()
   history.back()
+  await popstate
+}
+
+/**
+ * Helper to await forwards traversal
+ */
+async function forward() {
+  const popstate = waitForPopstate()
+  history.forward()
   await popstate
 }
 

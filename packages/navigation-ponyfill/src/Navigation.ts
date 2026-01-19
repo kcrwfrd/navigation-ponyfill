@@ -272,6 +272,11 @@ export class Navigation extends EventTarget {
     return (this.currentEntry?.index ?? 0) > 0
   }
 
+  get canGoForward() {
+    const currentIndex = this.currentEntry?.index ?? -1
+    return currentIndex >= 0 && currentIndex < this.#stack.entries().length - 1
+  }
+
   /**
    * Restores the original history methods and removes event listeners.
    * Useful for testing or when the ponyfill is no longer needed.
