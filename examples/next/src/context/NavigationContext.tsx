@@ -74,9 +74,9 @@ let cachedSnapshot: NavigationState | null = null
 let cachedEntryId: string | null = null
 
 const getSnapshot = (): NavigationState => {
-  const entryId = navigation.currentEntry.id
+  const entryId = navigation.currentEntry?.id
 
-  if (entryId !== cachedEntryId) {
+  if (entryId && entryId !== cachedEntryId) {
     cachedEntryId = entryId
 
     const entries = navigation.entries()
