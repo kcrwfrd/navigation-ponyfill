@@ -32,6 +32,7 @@
     "typescript": "^5"
   },
   "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.1.17",
     "lightningcss-linux-x64-gnu": "^1.30.2"
   }
 }
