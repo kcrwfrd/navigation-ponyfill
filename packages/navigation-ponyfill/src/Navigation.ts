@@ -73,6 +73,8 @@ export class Navigation extends EventTarget {
         index: self.#stack.currentIndex + 1,
         key,
         url: resolveUrl(url),
+        // @todo native pushState does not add state to native navigation's history entry.
+        // Consider omitting in our polyfill as well.
         state: ogState,
         sameDocument: true,
       })
@@ -117,6 +119,8 @@ export class Navigation extends EventTarget {
         index: self.#stack.currentIndex,
         key,
         url: resolveUrl(url) ?? getCurrentUrl(),
+        // @todo native pushState does not add state to native navigation's history entry.
+        // Consider omitting in our polyfill as well.
         state: ogState,
         sameDocument: true,
       })
@@ -218,6 +222,8 @@ export class Navigation extends EventTarget {
       index: entriesLength, // Append to end of any existing entries
       key,
       sameDocument: true,
+      // @todo native pushState does not add state to native navigation's history entry.
+      // Consider omitting in our polyfill as well.
       state: getUserState(this.#history.state),
       url: typeof window !== 'undefined' ? getCurrentUrl() : null,
     })
