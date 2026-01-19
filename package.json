@@ -20,7 +20,8 @@
     "test": "npm run test --workspace=packages/navigation-ponyfill",
     "test:watch": "npm run test:watch --workspace=packages/navigation-ponyfill",
     "test:coverage": "npm run test:coverage --workspace=packages/navigation-ponyfill",
-    "test:types": "npm run test:types --workspace=packages/navigation-ponyfill"
+    "test:types": "npm run test:types --workspace=packages/navigation-ponyfill",
+    "test:e2e": "npm run test:e2e --workspace=examples/next"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
