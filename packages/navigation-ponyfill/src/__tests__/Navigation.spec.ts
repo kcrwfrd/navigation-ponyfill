@@ -1007,6 +1007,95 @@ describe('Navigation', () => {
       expect(nav.currentEntry.url).toBe('http://localhost:3000/initial')
       expect(nav.currentEntry.index).toBe(0)
     })
+
+    it('should call setCurrentIndex when rehydrated entry is found by id', () => {
+      // Verify preconditions
+      expect(nav.entries().length).toBe(3)
+      expect(history.state?.__NAVIGATION_PONYFILL?.entryId).toBe(currentEntryId)
+
+      // Destroy navigation but keep sessionStorage
+      nav.destroy()
+
+      // Spy on setCurrentIndex to verify it's called during rehydration
+      const setCurrentIndexSpy = vi.spyOn(
+        NavigationHistoryEntriesStack.prototype,
+        'setCurrentIndex',
+      )
+
+      // Create a new Navigation
+      nav = new Navigation(history)
+
+      // Verify setCurrentIndex was called with the correct index (2 for page2)
+      expect(setCurrentIndexSpy).toHaveBeenCalledWith(2)
+
+      // Also verify the entry was properly set
+      expect(nav.currentEntry.id).toBe(currentEntryId)
+      expect(nav.currentEntry.index).toBe(2)
+
+      setCurrentIndexSpy.mockRestore()
+    })
+
+    it('should create a new entry when there is no metadata on history.state', () => {
+      /**
+       * This could be encountered via non pushState navigations such as
+       * - Normal multi-page app (MPA) instead of SPA navigations
+       * - Special cases in a SPA:
+       *   - Recovering from error / corrupted state
+       *   - Crossing from next.js pages router to app router
+       *
+       * @todo make sure our behavior doesn't conflict with next.js
+       */
+      expect(nav.entries().length).toBe(3)
+
+      nav.destroy()
+
+      history.pushState(null, '', './page3')
+
+      nav = new Navigation(history)
+
+      expect(nav.entries().length).toBe(4)
+      expect(nav.currentEntry.id).toBeTruthy()
+      expect(nav.currentEntry.url).toBe('http://localhost:3000/page3')
+      expect(nav.currentEntry.index).toBe(3)
+    })
+
+    it('should create new entry when history.state entryId does not match any rehydrated entries', () => {
+      // Verify preconditions
+      expect(nav.entries().length).toBe(3)
+
+      // Destroy navigation but keep sessionStorage with entries
+      nav.destroy()
+
+      // Manually set history.state with an entryId that doesn't exist in sessionStorage
+      // This simulates a case where the entry was truncated or the ID is corrupted
+      const nonExistentEntryId = 'non-existent-id-12345'
+      history.replaceState(
+        {
+          __NAVIGATION_PONYFILL: {
+            entryId: nonExistentEntryId,
+            entryKey: 'some-key',
+          },
+        },
+        '',
+      )
+
+      // Create a new Navigation - should hit line 195's false branch (entry not found)
+      nav = new Navigation(history)
+
+      // A new entry should be created since the entryId wasn't found
+      // The new entry should have a different ID than the non-existent one
+      expect(nav.currentEntry.id).not.toBe(nonExistentEntryId)
+
+      /**
+       * @todo
+       * If current history.state has an entryKey but is not matched to any entries
+       * from sessionStorage, we may want to consider throwing them all out and
+       * starting with an empty stack, because right now our entries may not match
+       * the history stack.
+       */
+      expect(nav.entries().length).toBe(4)
+      expect(nav.currentEntry.index).toBe(3)
+    })
   })
 })
 
