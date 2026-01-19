@@ -41,6 +41,26 @@ test.describe('Post Page', () => {
       await page.goForward()
       await expect(page).toHaveURL('/posts/1')
     })
+
+    test('should navigate to home page as fallback', async ({ page }) => {
+      await page.goto('/posts/1')
+
+      const prevLength = await page.evaluate(() => window.history.length)
+      await page.getByRole('link', { name: 'Go back' }).click()
+
+      await expect(page).toHaveURL('/')
+
+      await expect(await page.evaluate(() => window.history.length)).toBe(
+        prevLength,
+      )
+
+      // There should be no forward history -- fallback used replace()
+      await page.goForward()
+      await expect(page).toHaveURL('/')
+      await expect(await page.evaluate(() => window.history.length)).toBe(
+        prevLength,
+      )
+    })
   })
 })
 
