@@ -1,5 +1,6 @@
 import { NavigationCurrentEntryChangeEvent } from './NavigationCurrentEntryChangeEvent'
 import { NavigationHistoryEntry } from './NavigationHistoryEntry'
+import { NavigationHistoryEntriesStack } from './NavigationHistoryEntriesStack'
 import { HistoryShim } from './HistoryShim'
 
 /**
@@ -8,8 +9,16 @@ import { HistoryShim } from './HistoryShim'
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Navigation
  */
 export class Navigation extends EventTarget {
+  /**
+   * @todo
+   * We can remove public access to this now that entries() / currentEntry are supported.
+   * Apps can use those APIs to grab the previous URL in a way that's compatible
+   * with native Navigation API instead of looking at history.state directly.
+   * @deprecated
+   */
   static readonly KEY = '__NAVIGATION_PONYFILL'
   #history: History | HistoryShim
+  #stack: NavigationHistoryEntriesStack
 
   #ogPushState: History['pushState']
   #ogReplaceState: History['replaceState']
@@ -23,10 +32,14 @@ export class Navigation extends EventTarget {
     super()
 
     this.#history = history
+    this.#stack = new NavigationHistoryEntriesStack()
     this.#ogPushState = history.pushState
     this.#ogReplaceState = history.replaceState
     this.#pushState = history.pushState.bind(history)
     this.#replaceState = history.replaceState.bind(history)
+
+    // Initialize the stack with the current entry
+    this.#initializeCurrentEntry()
 
     const self = this
 
@@ -41,24 +54,38 @@ export class Navigation extends EventTarget {
     ) {
       assertStateIsObjectOrNullish(ogState)
 
-      const previousUrl = getCurrentUrl()
+      const previousEntry = self.#stack.currentEntry
+
+      const id = generateId()
+      const key = generateId()
 
       const state = {
         ...(ogState ?? {}),
         [Navigation.KEY]: {
-          canGoBack: true,
-          previousUrl,
+          entryId: id,
+          entryKey: key,
         },
       }
 
-      // @todo use this.currentEntry instead of instantiating here
-      const currentEntry = new NavigationHistoryEntry(previousUrl)
+      // Create and push new entry
+      const newEntry = new NavigationHistoryEntry({
+        id,
+        index: self.#stack.currentIndex + 1,
+        key,
+        url: resolveUrl(url),
+        // @todo native pushState does not add state to native navigation's history entry.
+        // Consider omitting in our polyfill as well.
+        state: ogState,
+        sameDocument: true,
+      })
+
+      self.#stack.push(newEntry)
 
       self.#pushState(state, _unused, url)
 
       self.dispatchEvent(
         new NavigationCurrentEntryChangeEvent('currententrychange', {
-          from: currentEntry,
+          from: previousEntry!,
           navigationType: 'push',
         }),
       )
@@ -71,23 +98,40 @@ export class Navigation extends EventTarget {
     ) {
       assertStateIsObjectOrNullish(ogState)
 
+      const previousEntry = self.#stack.currentEntry
+      const existingMeta = self.#history.state?.[Navigation.KEY]
+
+      // Generate new id, but KEEP the same key
+      const id = generateId()
+      const key = existingMeta?.entryKey ?? generateId()
+
       const state = {
         ...(ogState ?? {}),
         [Navigation.KEY]: {
-          canGoBack: self.#history.state?.[Navigation.KEY]?.canGoBack ?? false,
-          previousUrl:
-            self.#history.state?.[Navigation.KEY]?.previousUrl ?? null,
+          entryId: id,
+          entryKey: key,
         },
       }
 
-      // @todo perhaps we can retrieve this entry from the entries() array instead of instantiating here?
-      const currentEntry = new NavigationHistoryEntry(getCurrentUrl())
+      // Create replacement entry (same key, new id)
+      const newEntry = new NavigationHistoryEntry({
+        id,
+        index: self.#stack.currentIndex,
+        key,
+        url: resolveUrl(url) ?? getCurrentUrl(),
+        // @todo native pushState does not add state to native navigation's history entry.
+        // Consider omitting in our polyfill as well.
+        state: ogState,
+        sameDocument: true,
+      })
+
+      self.#stack.replace(newEntry)
 
       self.#replaceState(state, _unused, url)
 
       self.dispatchEvent(
         new NavigationCurrentEntryChangeEvent('currententrychange', {
-          from: currentEntry,
+          from: previousEntry!,
           navigationType: 'replace',
         }),
       )
@@ -95,10 +139,42 @@ export class Navigation extends EventTarget {
 
     if (typeof window !== 'undefined') {
       this.#popstateHandler = (_event: PopStateEvent) => {
+        const previousEntry = self.#stack.currentEntry
+        const meta = self.#history.state?.[Navigation.KEY]
+
+        if (meta?.entryKey) {
+          // Traverse to the entry with this key
+          const targetEntry = self.#stack.traverseTo(meta.entryKey)
+
+          if (!targetEntry) {
+            /**
+             * Entry not found in our stack - this could happen if:
+             * - Popstate occurs before ponyfill initialized and rehydrates from sessionStorage
+             * - History entry was created outside of navigation-ponyfill, perhaps before patching?
+             * - ???
+             *
+             * @todo think through this edge case some more.
+             */
+            console.error(
+              'targetEntry not found on popstate for navigation state:',
+              meta,
+              'navigation-ponyfill is in an irrecoverable state.',
+            )
+
+            // Set currentIndex to -1 to indicate an irrecoverable state
+            self.#stack.setCurrentIndex(-1)
+          }
+        } else {
+          /**
+           * @todo
+           * Handle if no history.state or no entryKey is found in history.state.
+           * This is probably due to a hashchange.
+           */
+        }
+
         this.dispatchEvent(
           new NavigationCurrentEntryChangeEvent('currententrychange', {
-            // @todo how can we determine the prior entry at this time?
-            from: new NavigationHistoryEntry(null),
+            from: previousEntry!,
             navigationType: 'traverse',
           }),
         )
@@ -107,8 +183,93 @@ export class Navigation extends EventTarget {
     }
   }
 
+  /**
+   * Initialize the entries stack with the current entry.
+   *
+   * If the stack has rehydrated entries from sessionStorage and we can find
+   * the current entry by id from history.state, we'll use that entry.
+   * Otherwise, we create a fresh entry.
+   */
+  #initializeCurrentEntry(): void {
+    const existingMeta = this.#history.state?.[Navigation.KEY]
+
+    // Check if stack has rehydrated entries and we can find the current one
+    if (existingMeta?.entryId && this.#stack.entries().length > 0) {
+      const existingEntry = this.#stack.findById(existingMeta.entryId)
+      if (existingEntry) {
+        // Entry found in rehydrated stack - set currentIndex to its position
+        this.#stack.setCurrentIndex(existingEntry.index)
+        return
+      }
+
+      /**
+       * Entry not found - might have been truncated, fall through to create new
+       *
+       * @todo edge cases might lurk here.
+       */
+      console.warn(
+        `entryId '${existingMeta.entryId}' found on history.state but entry not found in sessionStorage`,
+      )
+    }
+
+    const entriesLength = this.#stack.entries().length
+
+    // Fresh initialization or entry not found - create initial entry
+    const id = generateId()
+    const key = existingMeta?.entryKey ?? generateId()
+    const entry = new NavigationHistoryEntry({
+      id,
+      index: entriesLength, // Append to end of any existing entries
+      key,
+      sameDocument: true,
+      // @todo native pushState does not add state to native navigation's history entry.
+      // Consider omitting in our polyfill as well.
+      state: getUserState(this.#history.state),
+      url: typeof window !== 'undefined' ? getCurrentUrl() : null,
+    })
+    // make sure push doesn't truncate our entries
+    this.#stack.setCurrentIndex(entriesLength - 1)
+
+    this.#stack.push(entry)
+
+    // Persist to history state (only if we can)
+    if (typeof window !== 'undefined') {
+      this.#replaceState(
+        {
+          ...(this.#history.state ?? {}),
+          [Navigation.KEY]: {
+            ...this.#history.state?.[Navigation.KEY],
+            entryId: id,
+            entryKey: key,
+          },
+        },
+        '',
+      )
+    }
+  }
+
+  /**
+   * Returns the current NavigationHistoryEntry, or null under certain special cases:
+   * - the polyfill enters a corrupted state (e.g., if popstate event references
+   *   an entry that doesn't exist in the stack)
+   * - certain conditions under the spec
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/Navigation/currentEntry
+   * @see https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-current-entry
+   */
+  get currentEntry(): NavigationHistoryEntry | null {
+    return this.#stack.currentEntry
+  }
+
+  /**
+   * Returns an array of all NavigationHistoryEntry objects.
+   */
+  entries(): NavigationHistoryEntry[] {
+    return this.#stack.entries()
+  }
+
   get canGoBack() {
-    return this.#history.state?.[Navigation.KEY]?.canGoBack ?? false
+    return (this.currentEntry?.index ?? 0) > 0
   }
 
   /**
@@ -132,6 +293,37 @@ export function getCurrentUrl() {
   }
 
   return window.location.href
+}
+
+/**
+ * Generates a unique identifier for history entries.
+ */
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`
+}
+
+/**
+ * Resolves a URL to an absolute URL string.
+ */
+function resolveUrl(url?: string | URL | null): string {
+  if (!url) return getCurrentUrl()
+  if (typeof url === 'string') {
+    return new URL(url, window.location.href).href
+  }
+  return url.href
+}
+
+/**
+ * Extracts user state from history state by removing ponyfill metadata.
+ */
+function getUserState(state: any): unknown {
+  if (!state) return undefined
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { [Navigation.KEY]: _meta, ...userState } = state
+  return Object.keys(userState).length > 0 ? userState : undefined
 }
 
 /**

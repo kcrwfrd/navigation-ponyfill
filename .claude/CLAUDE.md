@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 navigation-ponyfill is a ponyfill for the browser Navigation API that enables tracking of browser history navigation in single-page applications. The primary use case is reliable detection of when `history.back()` is safe to call vs when to fallback to a URL.
 
+Please keep the official Navigation API documentation and specifications in mind when implementing and reviewing code:
+
+- https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API
+- https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-api
+
+We should strive to match the official specification and behavior as closely as possible.
+
 ## Commands
 
 ```bash

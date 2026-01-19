@@ -1,10 +1,23 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { createNavigation } from '../createNavigation'
+import { NavigationHistoryEntriesStack } from '../NavigationHistoryEntriesStack'
 import { Navigation } from '../Navigation'
 import { HistoryShim } from '../HistoryShim'
 import { MockHistory } from '../__mocks__/historyMock'
 
 describe('createNavigation', () => {
+  beforeEach(() => {
+    NavigationHistoryEntriesStack.clearStorage()
+  })
+
   describe('browser environment', () => {
     beforeEach(() => {
       vi.stubGlobal('history', new MockHistory())
@@ -34,12 +47,22 @@ describe('createNavigation', () => {
   })
 
   describe('SSR environment', () => {
+    const consoleWarnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => {})
+
     beforeEach(() => {
       vi.stubGlobal('window', undefined)
+      vi.stubGlobal('sessionStorage', undefined)
     })
 
     afterEach(() => {
       vi.unstubAllGlobals()
+      consoleWarnSpy.mockClear()
+    })
+
+    afterAll(() => {
+      consoleWarnSpy.mockRestore()
     })
 
     it('should use HistoryShim when window is undefined', () => {
@@ -55,6 +78,17 @@ describe('createNavigation', () => {
     it('should handle destroy() gracefully in SSR', () => {
       const nav = createNavigation()
       expect(() => nav.destroy()).not.toThrow()
+    })
+
+    it('should warn about skipping sessionStorage operations', () => {
+      createNavigation()
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'NavigationHistoryEntriesStack: sessionStorage is undefined, skipping load from sessionStorage',
+      )
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'NavigationHistoryEntriesStack: sessionStorage is undefined, skipping save to sessionStorage',
+      )
     })
   })
 
