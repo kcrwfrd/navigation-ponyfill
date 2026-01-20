@@ -336,17 +336,22 @@ describe('Navigation', () => {
       expect(handler).toHaveBeenCalledTimes(1)
     })
 
-    it('should not dispatch currententrychange event on popstate with null state', () => {
+    it('should dispatch currententrychange event on popstate with null state', () => {
       /**
        * This is either a hashchange event or some other strange state where
-       * state has become null.
+       * state is null--maybe pushState was called before polyfill was initialized.
+       *
+       * We are assuming it's a hashchange.
        */
+      const currentEntry = nav.currentEntry
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
 
       window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
 
-      expect(handler).not.toHaveBeenCalled()
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ from: currentEntry, navigationType: 'push' }),
+      )
     })
 
     it('should set navigationType to "traverse"', () => {
