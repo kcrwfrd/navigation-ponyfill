@@ -141,29 +141,73 @@ export class Navigation extends EventTarget {
 
     if (typeof window !== 'undefined') {
       this.#popstateHandler = (event: PopStateEvent) => {
-        if (!event.state) {
-          /**
-           * @todo
-           * A hashchange (e.g. from `<a href="#foo">` or `location.hash = 'foo'`)
-           * will trigger a popstate event with a null state.
-           *
-           * Unlike intercepting pushState and replaceState, the history entry
-           * and state have already changed at this point. We will need to
-           * implement `currentEntry` for our own reference so we can determine
-           * whether to emit a `push` or `traverse` event.
-           *
-           * @note
-           * If we wish to augument history.state with history.replaceState at
-           * this point, we must retrieve the previous entries state so that we
-           * can merge it, otherwise we will cause Next.js to reload.
-           *
-           * @see https://github.com/vercel/next.js/blob/4fa7d80eb9183273cc531623bb45606942b438d6/packages/next/src/client/components/app-router.tsx#L364-L373
-           */
-          return
-        }
-
         const previousEntry = self.#stack.currentEntry
         const meta = self.#history.state?.[Navigation.KEY]
+
+        /**
+         * There is no state... this was probably a hashchange
+         *
+         * A hashchange (e.g. from `<a href="#foo">` or `location.hash = 'foo'`)
+         * will trigger a popstate event with a null state.
+         *
+         * @see https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate-non-frag-sync
+         * > "this means that popstate events fire for fragment navigations, but not for history.pushState() calls."
+         *
+         * Unlike intercepting pushState and replaceState, the history entry
+         * and state have already changed at this point. We will need to call
+         * `replaceState` in order to keep our entries in sync.
+         *
+         * @note
+         * It is important that we merge history.state with the previous state
+         * at this point so that we don't cause Next.js to reload when it encounters
+         * traversal to this history entry.
+         *
+         * @see https://github.com/vercel/next.js/blob/4fa7d80eb9183273cc531623bb45606942b438d6/packages/next/src/client/components/app-router.tsx#L364-L373
+         */
+        if (!event.state) {
+          // Make sure the hashchange is added to our entries
+          const id = generateId()
+          const key = generateId()
+
+          // We need to copy previous state or Next.js will reload
+          // on navigation to this history entry
+          const ogState = previousEntry?.getState() ?? {}
+
+          const state = {
+            ...ogState,
+            [Navigation.KEY]: {
+              entryId: id,
+              entryKey: key,
+            },
+          }
+
+          const url = resolveUrl()
+
+          const newEntry = new NavigationHistoryEntry({
+            id,
+            index: self.#stack.currentIndex + 1,
+            key,
+            url,
+            state: ogState,
+            sameDocument: true,
+          })
+
+          // The history entry was never added to our stack so we need to do so now
+          self.#stack.push(newEntry)
+
+          // But the history entry was already created, so we need to replace it
+          self.#replaceState(state, '', url)
+
+          // And now we need to dispatch the event with navigationType: 'push'
+          this.dispatchEvent(
+            new NavigationCurrentEntryChangeEvent('currententrychange', {
+              from: previousEntry!,
+              navigationType: 'push',
+            }),
+          )
+
+          return
+        }
 
         if (meta?.entryKey) {
           // Traverse to the entry with this key
@@ -173,6 +217,7 @@ export class Navigation extends EventTarget {
             /**
              * Entry not found in our stack - this could happen if:
              * - Popstate occurs before ponyfill initialized and rehydrates from sessionStorage
+             * - Rehydration from sessionStorage failed
              * - History entry was created outside of navigation-ponyfill, perhaps before patching?
              * - ???
              *
@@ -188,11 +233,9 @@ export class Navigation extends EventTarget {
             self.#stack.setCurrentIndex(-1)
           }
         } else {
-          /**
-           * @todo
-           * Handle if no history.state or no entryKey is found in history.state.
-           * This is probably due to a hashchange.
-           */
+          console.error(
+            "navigation-ponyfill's state is corrupted: popstate event has state but no entryKey",
+          )
         }
 
         this.dispatchEvent(
