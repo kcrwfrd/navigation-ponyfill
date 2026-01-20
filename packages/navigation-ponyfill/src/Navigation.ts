@@ -209,33 +209,35 @@ export class Navigation extends EventTarget {
           return
         }
 
-        if (meta?.entryKey) {
-          // Traverse to the entry with this key
-          const targetEntry = self.#stack.traverseTo(meta.entryKey)
-
-          if (!targetEntry) {
-            /**
-             * Entry not found in our stack - this could happen if:
-             * - Popstate occurs before ponyfill initialized and rehydrates from sessionStorage
-             * - Rehydration from sessionStorage failed
-             * - History entry was created outside of navigation-ponyfill, perhaps before patching?
-             * - ???
-             *
-             * @todo think through this edge case some more.
-             */
-            console.error(
-              'targetEntry not found on popstate for navigation state:',
-              meta,
-              'navigation-ponyfill is in an irrecoverable state.',
-            )
-
-            // Set currentIndex to -1 to indicate an irrecoverable state
-            self.#stack.setCurrentIndex(-1)
-          }
-        } else {
+        if (!meta?.entryKey) {
           console.error(
             "navigation-ponyfill's state is corrupted: popstate event has state but no entryKey",
           )
+          // Set currentIndex to -1 to indicate a corrupted state
+          self.#stack.setCurrentIndex(-1)
+          return
+        }
+
+        // Traverse to the entry with this key
+        const targetEntry = self.#stack.traverseTo(meta.entryKey)
+
+        if (!targetEntry) {
+          /**
+           * Entry not found in our stack - this could happen if:
+           * - Popstate occurs before ponyfill initialized and rehydrates from sessionStorage
+           * - Rehydration from sessionStorage failed
+           * - History entry was created outside of navigation-ponyfill, perhaps before patching?
+           * - ???
+           *
+           * @todo think through this edge case some more.
+           */
+          console.error(
+            "navigation-ponyfill's state is corrupted: targetEntry not found on popstate",
+            meta,
+          )
+          // Set currentIndex to -1 to indicate a corrupted state
+          self.#stack.setCurrentIndex(-1)
+          return
         }
 
         this.dispatchEvent(

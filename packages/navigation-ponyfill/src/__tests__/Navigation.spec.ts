@@ -417,9 +417,8 @@ describe('Navigation', () => {
       await back()
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'targetEntry not found on popstate for navigation state:',
+        "navigation-ponyfill's state is corrupted: targetEntry not found on popstate",
         fakeState.__NAVIGATION_PONYFILL,
-        'navigation-ponyfill is in an irrecoverable state.',
       )
 
       // currentEntry should be null since currentIndex is -1
