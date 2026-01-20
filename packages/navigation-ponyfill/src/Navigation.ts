@@ -27,8 +27,6 @@ export class Navigation extends EventTarget {
   #replaceState: History['replaceState']
 
   #popstateHandler: ((event: PopStateEvent) => void) | null = null
-  // @todo decide if we keep or remove hashchangeHandler
-  #hashchangeHandler: ((event: HashChangeEvent) => void) | null = null
 
   constructor(history: History | HistoryShim) {
     super()
@@ -356,12 +354,6 @@ export class Navigation extends EventTarget {
     if (this.#popstateHandler) {
       window.removeEventListener('popstate', this.#popstateHandler)
       this.#popstateHandler = null
-    }
-
-    // @todo decide if we keep or remove hashchangeHandler
-    if (this.#hashchangeHandler) {
-      window.removeEventListener('hashchange', this.#hashchangeHandler)
-      this.#hashchangeHandler = null
     }
   }
 }
