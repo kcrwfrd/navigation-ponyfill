@@ -1,3 +1,4 @@
+import { JSDOM } from 'jsdom'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Navigation, getCurrentUrl } from '../Navigation'
 import { NavigationCurrentEntryChangeEvent } from '../NavigationCurrentEntryChangeEvent'
@@ -5,7 +6,7 @@ import { NavigationHistoryEntriesStack } from '../NavigationHistoryEntriesStack'
 
 describe('Navigation', () => {
   let nav: Navigation
-  const history = window.history
+  const BASE_URL = window.location.origin
 
   beforeEach(() => {
     // Clear sessionStorage to prevent entries from previous tests affecting this one
@@ -324,7 +325,29 @@ describe('Navigation', () => {
 
   describe('popstate handling', () => {
     beforeEach(() => {
-      nav = new Navigation(history)
+      /**
+       * We instantiate a new JSDOM for each of these tests to ensure test isolation.
+       * Mutating window.location.hash seems to affect event.state on popstate events
+       * in later tests.
+       *
+       * @todo use vitest browser mode instead
+       * @link https://github.com/kcrwfrd/navigation-ponyfill/issues/37
+       */
+      const jsdom = new JSDOM('<!DOCTYPE html><p>Hello world</p>', {
+        url: 'http://localhost:3000',
+      })
+
+      vi.stubGlobal('window', jsdom.window)
+      vi.stubGlobal('history', jsdom.window.history)
+      vi.stubGlobal('location', jsdom.window.location)
+      vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage)
+
+      nav = new Navigation(window.history)
+    })
+
+    afterEach(() => {
+      nav.destroy()
+      vi.unstubAllGlobals()
     })
 
     it('should dispatch currententrychange event on popstate with state', () => {
@@ -336,16 +359,19 @@ describe('Navigation', () => {
       expect(handler).toHaveBeenCalledTimes(1)
     })
 
-    it('should dispatch currententrychange event on popstate with null state', () => {
+    it('should dispatch currententrychange event on popstate from hashchange', () => {
       /**
-       * This is either a hashchange event or some other strange state where
-       * state is null--maybe pushState was called before polyfill was initialized.
+       * A hashchange (e.g. from `<a href="#foo">` or `location.hash = 'foo'`)
+       * will trigger a popstate event with a null state.
        *
-       * We are assuming it's a hashchange.
+       * In jsdom we simulate this by changing location.hash then dispatching popstate.
        */
       const currentEntry = nav.currentEntry
       const handler = vi.fn()
       nav.addEventListener('currententrychange', handler)
+
+      // Simulate hashchange: browser changes URL, then fires popstate with null state
+      window.location.hash = '#section'
 
       window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
 
@@ -374,14 +400,14 @@ describe('Navigation', () => {
       history.pushState({}, '', '/page2')
 
       expect(nav.currentEntry!.index).toBe(2)
-      expect(nav.currentEntry!.url).toBe('http://localhost:3000/page2')
+      expect(nav.currentEntry!.url).toBe(`${BASE_URL}/page2`)
 
       // Navigate back
       await back()
 
       // Should have traversed to the correct entry
       expect(nav.currentEntry!.index).toBe(1)
-      expect(nav.currentEntry!.url).toBe('http://localhost:3000/page1')
+      expect(nav.currentEntry!.url).toBe(`${BASE_URL}/page1`)
 
       expect(handler).toHaveBeenCalledTimes(3)
 
@@ -412,7 +438,7 @@ describe('Navigation', () => {
       history.pushState({}, '', '/test2')
 
       // Create a new Navigation - this will initialize with the current entry
-      nav = new Navigation(history)
+      nav = new Navigation(window.history)
 
       await back()
 
@@ -425,6 +451,80 @@ describe('Navigation', () => {
       expect(nav.currentEntry).toBe(null)
 
       expect(nav.canGoBack).toBe(false)
+
+      consoleErrorSpy.mockRestore()
+    })
+
+    it('should traverse forward to hashchange entry', async () => {
+      history.pushState({}, '', '/page')
+
+      // Simulate hashchange: browser changes URL to add hash, then fires popstate
+      window.location.hash = '#section'
+      window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
+
+      expect(nav.currentEntry?.url).toBe(`${BASE_URL}/page#section`)
+
+      const hashEntryKey = nav.currentEntry?.key
+      expect(nav.entries()).toHaveLength(3) // initial + /page + hash entry
+
+      // Go back to /page
+      await back()
+
+      /**
+       * It seems that jsdom has a bug that creates an extra popstate event when
+       * we traverse history after manipulating window.location.hash
+       *
+       * @todo https://github.com/kcrwfrd/navigation-ponyfill/issues/37
+       */
+      await waitForPopstate()
+
+      expect(nav.currentEntry?.url).toBe(`${BASE_URL}/page`)
+      expect(nav.entries()).toHaveLength(3) // No truncation
+
+      // Go forward - should traverse to hash entry, not push new
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+      await forward()
+
+      expect(nav.currentEntry?.url).toBe(`${BASE_URL}/page#section`)
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ navigationType: 'traverse' }),
+      )
+      expect(nav.currentEntry?.key).toBe(hashEntryKey)
+      expect(nav.entries()).toHaveLength(3) // Still 3, no new entry pushed
+    })
+
+    it('should handle corrupted state when popstate has null state but URL path differs', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      // We're at /initial, push to /page-a
+      history.pushState({}, '', '/page-a')
+      expect(nav.currentEntry?.url).toContain('/page-a')
+
+      // Setup: destroy nav, push with null state to a different path, recreate nav
+      nav.destroy()
+      NavigationHistoryEntriesStack.clearStorage()
+
+      // Simulate: pushState(null) was called before ponyfill initialization
+      // Then ponyfill initializes, then user navigates back to a page where
+      // popstate fires with null state and a different pathname
+      history.replaceState(null, '', '/page-a')
+      history.pushState(null, '', '/page-b')
+
+      nav = new Navigation(history)
+
+      // Now go back - this will fire popstate with null state (from the pushState(null))
+      // but the URL path is /page-a which differs from current /page-b
+      await back()
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "navigation-ponyfill's state is corrupted: popstate with null state but URL path differs",
+      )
+
+      // currentEntry should be null since currentIndex is -1
+      expect(nav.currentEntry).toBe(null)
 
       consoleErrorSpy.mockRestore()
     })
