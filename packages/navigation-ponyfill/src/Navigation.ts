@@ -295,9 +295,15 @@ export class Navigation extends EventTarget {
         log('[popstate] traversed to entry', targetEntry.url)
         log('[popstate] currentEntry', this.currentEntry?.url)
 
+        if (!previousEntry) {
+          // This should not occur, but warning just in case
+          console.warn('popstate event with no previous entry')
+          return
+        }
+
         this.dispatchEvent(
           new NavigationCurrentEntryChangeEvent('currententrychange', {
-            from: previousEntry!,
+            from: previousEntry,
             navigationType: 'traverse',
           }),
         )
