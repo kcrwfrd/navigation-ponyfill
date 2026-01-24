@@ -1323,12 +1323,22 @@ describe('Navigation', () => {
         '',
       )
 
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
+
       // Create a new Navigation - should hit line 195's false branch (entry not found)
       nav = new Navigation(history)
 
       // A new entry should be created since the entryId wasn't found
       // The new entry should have a different ID than the non-existent one
       expect(nav.currentEntry!.id).not.toBe(nonExistentEntryId)
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        `entryId '${nonExistentEntryId}' found on history.state but entry not found in sessionStorage`,
+      )
+
+      consoleWarnSpy.mockRestore()
 
       /**
        * @todo
