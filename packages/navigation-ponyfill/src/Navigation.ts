@@ -296,7 +296,8 @@ export class Navigation extends EventTarget {
         log('[popstate] currentEntry', this.currentEntry?.url)
 
         if (!previousEntry) {
-          // This should not occur, but warning just in case
+          // This should generally not occur, but warning just in case.
+          // It may occur if we're recovering from a corrupted state.
           console.warn('popstate event with no previous entry')
           return
         }
