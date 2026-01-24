@@ -3,6 +3,18 @@ import { NavigationHistoryEntry } from './NavigationHistoryEntry'
 import { NavigationHistoryEntriesStack } from './NavigationHistoryEntriesStack'
 import { HistoryShim } from './HistoryShim'
 
+const DEBUG = 0
+
+/**
+ * @todo
+ * Consider adding proper debug mode and logging implementation.
+ */
+function log(...args: any[]) {
+  if (DEBUG) {
+    console.log(...args)
+  }
+}
+
 /**
  * Navigation ponyfill
  *
@@ -142,6 +154,14 @@ export class Navigation extends EventTarget {
         const previousEntry = self.#stack.currentEntry
         const meta = self.#history.state?.[Navigation.KEY]
 
+        log('[popstate] event.state', event.state)
+        log('[popstate] history.state', self.#history.state)
+
+        if (history.state && !event.state) {
+          // This should not happen, but found it to occur in unit tests due to jsdom bugs
+          log('[popstate] event with null state but history.state is not null')
+        }
+
         /**
          * There is no state... this was probably a hashchange
          *
@@ -163,6 +183,41 @@ export class Navigation extends EventTarget {
          * @see https://github.com/vercel/next.js/blob/4fa7d80eb9183273cc531623bb45606942b438d6/packages/next/src/client/components/app-router.tsx#L364-L373
          */
         if (!event.state) {
+          // Validate this looks like a hashchange (same origin+pathname)
+          const currentUrl = new URL(resolveUrl())
+          const previousUrl = previousEntry?.url
+            ? new URL(previousEntry.url)
+            : null
+
+          log('[popstate] previousUrl', previousUrl?.href)
+          log('[popstate] currentUrl', currentUrl.href)
+
+          const isDifferentPath =
+            previousUrl && previousUrl.pathname !== currentUrl.pathname
+
+          if (isDifferentPath) {
+            console.error(
+              "navigation-ponyfill's state is corrupted: popstate with null state but URL path differs",
+            )
+            self.#stack.setCurrentIndex(-1)
+            return
+          }
+
+          const isHashChange =
+            previousUrl &&
+            previousUrl.origin === currentUrl.origin &&
+            previousUrl.pathname === currentUrl.pathname &&
+            previousUrl.search === currentUrl.search &&
+            previousUrl.hash !== currentUrl.hash
+
+          if (!isHashChange) {
+            log('!isHashChange')
+            // popstate can occur without hashchange from repeated clicks on the same <a href="#foo">
+            // The only other way we got here is if pushState was called before polyfill was initialized.
+            // We can just make our exit now and hope for the best.
+            return
+          }
+
           // Make sure the hashchange is added to our entries
           const id = generateId()
           const key = generateId()
@@ -237,6 +292,8 @@ export class Navigation extends EventTarget {
           self.#stack.setCurrentIndex(-1)
           return
         }
+        log('[popstate] traversed to entry', targetEntry.url)
+        log('[popstate] currentEntry', this.currentEntry?.url)
 
         this.dispatchEvent(
           new NavigationCurrentEntryChangeEvent('currententrychange', {
