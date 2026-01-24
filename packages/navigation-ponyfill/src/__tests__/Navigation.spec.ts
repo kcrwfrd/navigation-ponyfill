@@ -455,6 +455,35 @@ describe('Navigation', () => {
       consoleErrorSpy.mockRestore()
     })
 
+    it('should log error and set currentIndex to -1 when popstate state is missing __NAVIGATION_PONYFILL', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      nav.destroy()
+      NavigationHistoryEntriesStack.clearStorage()
+
+      // Simulate: pushState was called before ponyfill was initialized
+      // so history entry has state but no __NAVIGATION_PONYFILL metadata
+      history.replaceState({ userState: 'before-ponyfill' }, '', '/test')
+      history.pushState({}, '', '/test2')
+
+      nav = new Navigation(window.history)
+
+      await back()
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "navigation-ponyfill's state is corrupted: popstate event has state but no entryKey",
+      )
+
+      // currentEntry should be null since currentIndex is -1
+      expect(nav.currentEntry).toBe(null)
+
+      expect(nav.canGoBack).toBe(false)
+
+      consoleErrorSpy.mockRestore()
+    })
+
     it('should traverse forward to hashchange entry', async () => {
       history.pushState({}, '', '/page')
 
