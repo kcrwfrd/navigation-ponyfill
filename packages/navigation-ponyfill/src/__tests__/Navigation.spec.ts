@@ -557,6 +557,62 @@ describe('Navigation', () => {
 
       consoleErrorSpy.mockRestore()
     })
+
+    it('should warn and skip event dispatch when previousEntry is null but traversal succeeds', async () => {
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      nav.destroy()
+      NavigationHistoryEntriesStack.clearStorage()
+
+      // Set up: create history entries where back() will corrupt state,
+      // but forward() will find a valid entry
+      const fakeState = {
+        __NAVIGATION_PONYFILL: {
+          entryId: 'non-existent-id',
+          entryKey: 'non-existent-key',
+        },
+      }
+      history.replaceState(fakeState, '', '/corrupted')
+      history.pushState({}, '', '/valid')
+
+      // Create nav - this will initialize at /valid with a valid entry
+      nav = new Navigation(window.history)
+      const validEntryKey = nav.currentEntry?.key
+
+      // Go back to /corrupted - this will fail traversal and set currentIndex = -1
+      await back()
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "navigation-ponyfill's state is corrupted: targetEntry not found on popstate",
+        fakeState.__NAVIGATION_PONYFILL,
+      )
+      expect(nav.currentEntry).toBe(null)
+
+      // Now go forward to /valid - traversal should succeed (entry exists),
+      // but previousEntry was null at the start of the handler
+      const handler = vi.fn()
+      nav.addEventListener('currententrychange', handler)
+
+      await forward()
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'popstate event with no previous entry',
+      )
+
+      // Event should NOT have been dispatched
+      expect(handler).not.toHaveBeenCalled()
+
+      // But currentEntry should now be set (traversal succeeded)
+      expect(nav.currentEntry?.key).toBe(validEntryKey)
+
+      consoleWarnSpy.mockRestore()
+      consoleErrorSpy.mockRestore()
+    })
   })
 
   describe('canGoBack getter', () => {
