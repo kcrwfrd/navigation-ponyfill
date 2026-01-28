@@ -10,7 +10,7 @@ export function Header() {
   const isHome = pathname === '/'
 
   return (
-    <header className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+    <header className="sticky top-0 z-10 h-13 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
       <nav className="max-w-lg mx-auto px-4 py-2">
         <ul className="flex flex-row-reverse items-center justify-between gap-3 min-h-9">
           <li>

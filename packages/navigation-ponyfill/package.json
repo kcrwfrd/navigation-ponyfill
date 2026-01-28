@@ -55,6 +55,7 @@
     "test:types": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/jsdom": "^27.0.0",
     "@vitest/coverage-v8": "^4.0.16",
     "jsdom": "^27.4.0",
     "typescript": "^5",

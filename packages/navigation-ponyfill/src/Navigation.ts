@@ -3,6 +3,18 @@ import { NavigationHistoryEntry } from './NavigationHistoryEntry'
 import { NavigationHistoryEntriesStack } from './NavigationHistoryEntriesStack'
 import { HistoryShim } from './HistoryShim'
 
+const DEBUG = 0
+
+/**
+ * @todo
+ * Consider adding proper debug mode and logging implementation.
+ */
+function log(...args: any[]) {
+  if (DEBUG) {
+    console.log(...args)
+  }
+}
+
 /**
  * Navigation ponyfill
  *
@@ -138,43 +150,161 @@ export class Navigation extends EventTarget {
     }
 
     if (typeof window !== 'undefined') {
-      this.#popstateHandler = (_event: PopStateEvent) => {
+      this.#popstateHandler = (event: PopStateEvent) => {
         const previousEntry = self.#stack.currentEntry
         const meta = self.#history.state?.[Navigation.KEY]
 
-        if (meta?.entryKey) {
-          // Traverse to the entry with this key
-          const targetEntry = self.#stack.traverseTo(meta.entryKey)
+        log('[popstate] event.state', event.state)
+        log('[popstate] history.state', self.#history.state)
 
-          if (!targetEntry) {
-            /**
-             * Entry not found in our stack - this could happen if:
-             * - Popstate occurs before ponyfill initialized and rehydrates from sessionStorage
-             * - History entry was created outside of navigation-ponyfill, perhaps before patching?
-             * - ???
-             *
-             * @todo think through this edge case some more.
-             */
+        if (history.state && !event.state) {
+          // This should not happen, but found it to occur in unit tests due to jsdom bugs
+          log('[popstate] event with null state but history.state is not null')
+        }
+
+        /**
+         * There is no state... this was probably a hashchange
+         *
+         * A hashchange (e.g. from `<a href="#foo">` or `location.hash = 'foo'`)
+         * will trigger a popstate event with a null state.
+         *
+         * @see https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate-non-frag-sync
+         * > "this means that popstate events fire for fragment navigations, but not for history.pushState() calls."
+         *
+         * Unlike intercepting pushState and replaceState, the history entry
+         * and state have already changed at this point. We will need to call
+         * `replaceState` in order to keep our entries in sync.
+         *
+         * @note
+         * It is important that we merge history.state with the previous state
+         * at this point so that we don't cause Next.js to reload when it encounters
+         * traversal to this history entry.
+         *
+         * @see https://github.com/vercel/next.js/blob/4fa7d80eb9183273cc531623bb45606942b438d6/packages/next/src/client/components/app-router.tsx#L364-L373
+         */
+        if (!event.state) {
+          // Validate this looks like a hashchange (same origin+pathname)
+          const currentUrl = new URL(resolveUrl())
+          const previousUrl = previousEntry?.url
+            ? new URL(previousEntry.url)
+            : null
+
+          log('[popstate] previousUrl', previousUrl?.href)
+          log('[popstate] currentUrl', currentUrl.href)
+
+          const isDifferentPath =
+            previousUrl && previousUrl.pathname !== currentUrl.pathname
+
+          if (isDifferentPath) {
             console.error(
-              'targetEntry not found on popstate for navigation state:',
-              meta,
-              'navigation-ponyfill is in an irrecoverable state.',
+              "navigation-ponyfill's state is corrupted: popstate with null state but URL path differs",
             )
-
-            // Set currentIndex to -1 to indicate an irrecoverable state
             self.#stack.setCurrentIndex(-1)
+            return
           }
-        } else {
+
+          const isHashChange =
+            previousUrl &&
+            previousUrl.origin === currentUrl.origin &&
+            previousUrl.pathname === currentUrl.pathname &&
+            previousUrl.search === currentUrl.search &&
+            previousUrl.hash !== currentUrl.hash
+
+          if (!isHashChange) {
+            log('!isHashChange')
+            // popstate can occur without hashchange from repeated clicks on the same <a href="#foo">
+            // The only other way we got here is if pushState was called before polyfill was initialized.
+            // We can just make our exit now and hope for the best.
+            return
+          }
+
+          // Make sure the hashchange is added to our entries
+          const id = generateId()
+          const key = generateId()
+
+          // We need to copy previous state or Next.js will reload
+          // on navigation to this history entry
+          const ogState = previousEntry?.getState() ?? {}
+
+          const state = {
+            ...ogState,
+            [Navigation.KEY]: {
+              entryId: id,
+              entryKey: key,
+            },
+          }
+
+          const url = resolveUrl()
+
+          const newEntry = new NavigationHistoryEntry({
+            id,
+            index: self.#stack.currentIndex + 1,
+            key,
+            url,
+            state: ogState,
+            sameDocument: true,
+          })
+
+          // The history entry was never added to our stack so we need to do so now
+          self.#stack.push(newEntry)
+
+          // But the history entry was already created, so we need to replace it
+          self.#replaceState(state, '', url)
+
+          // And now we need to dispatch the event with navigationType: 'push'
+          this.dispatchEvent(
+            new NavigationCurrentEntryChangeEvent('currententrychange', {
+              from: previousEntry!,
+              navigationType: 'push',
+            }),
+          )
+
+          return
+        }
+
+        if (!meta?.entryKey) {
+          console.error(
+            "navigation-ponyfill's state is corrupted: popstate event has state but no entryKey",
+          )
+          // Set currentIndex to -1 to indicate a corrupted state
+          self.#stack.setCurrentIndex(-1)
+          return
+        }
+
+        // Traverse to the entry with this key
+        const targetEntry = self.#stack.traverseTo(meta.entryKey)
+
+        if (!targetEntry) {
           /**
-           * @todo
-           * Handle if no history.state or no entryKey is found in history.state.
-           * This is probably due to a hashchange.
+           * Entry not found in our stack - this could happen if:
+           * - Popstate occurs before ponyfill initialized and rehydrates from sessionStorage
+           * - Rehydration from sessionStorage failed
+           * - History entry was created outside of navigation-ponyfill, perhaps before patching?
+           * - ???
+           *
+           * @todo think through this edge case some more.
            */
+          console.error(
+            "navigation-ponyfill's state is corrupted: targetEntry not found on popstate",
+            meta,
+          )
+          // Set currentIndex to -1 to indicate a corrupted state
+          self.#stack.setCurrentIndex(-1)
+          return
+        }
+        log('[popstate] traversed to entry', targetEntry.url)
+        log('[popstate] currentEntry', this.currentEntry?.url)
+
+        if (!previousEntry) {
+          // This should generally not occur, but warning just in case.
+          // It may occur if we're recovering from a corrupted state.
+          console.warn('popstate event with no previous entry')
+          return
         }
 
         this.dispatchEvent(
           new NavigationCurrentEntryChangeEvent('currententrychange', {
-            from: previousEntry!,
+            from: previousEntry,
             navigationType: 'traverse',
           }),
         )
