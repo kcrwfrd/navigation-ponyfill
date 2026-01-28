@@ -8,7 +8,6 @@
  * @example
  * import { navigation } from 'navigation-ponyfill'
  */
-import { navigation } from './lib/navigation'
+import { createNavigation } from 'navigation-ponyfill/core'
 
-// Expose on window.nav for debugging
-;(window as Window & { nav?: typeof navigation }).nav = navigation
+export const navigation = createNavigation({ force: true })
