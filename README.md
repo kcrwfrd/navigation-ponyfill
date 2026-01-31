@@ -110,12 +110,42 @@ type NavigationType = 'push' | 'replace' | 'traverse' | 'reload'
 - `traverse` — Browser back/forward navigation (popstate)
 - `reload` — Page reload (not currently emitted, included for alignment with native types)
 
-### `createNavigation(history?)`
+### `createNavigation(options?)`
 
 Factory function to create a `Navigation` instance.
 
 ```typescript
-function createNavigation(history?: History | HistoryShim): Navigation
+function createNavigation(
+  options?: CreateNavigationOptions,
+): Navigation | NativeNavigation
+function createNavigation(options: { force: true }): Navigation
+```
+
+#### `CreateNavigationOptions`
+
+```typescript
+type CreateNavigationOptions = {
+  force?: boolean
+  history?: History | HistoryShim
+}
+```
+
+- **`force`** — When `true`, always returns the ponyfill `Navigation` instance, even if the native Navigation API is available. Default: `false` (prefers native when available).
+- **`history`** — Custom `History` object to use. Defaults to `window.history` in browser environments, or a no-op `HistoryShim` during SSR.
+
+#### Examples
+
+```typescript
+import { createNavigation } from 'navigation-ponyfill/core'
+
+// Default: uses native Navigation API if available, otherwise ponyfill
+const navigation = createNavigation()
+
+// Force ponyfill even when native is available
+const navigation = createNavigation({ force: true })
+
+// Custom history object (useful for testing)
+const navigation = createNavigation({ history: customHistory })
 ```
 
 ## Framework Integration
