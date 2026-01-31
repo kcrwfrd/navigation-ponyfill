@@ -1,13 +1,12 @@
 import { createNavigation } from './createNavigation'
 
 /**
- * Pre-initialized Navigation singleton.
- * Importing from 'navigation-ponyfill' auto-patches history.pushState/replaceState.
+ * This is simply a reference to `window.navigation` when available.
+ *
+ * When not available, it is a singleton instance of our `Navigation` polyfill.
+ * In this case, importing from 'navigation-ponyfill' auto-patches history.pushState/replaceState.
  *
  * For side-effect-free imports, use 'navigation-ponyfill/core' instead.
- *
- * @todo support deferral to native navigation instead.
- * We'll need to address TypeScript support.
  *
  * @example
  * import { navigation } from 'navigation-ponyfill'
