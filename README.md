@@ -2,6 +2,8 @@
 
 A ponyfill (polyfill) for the browser [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API) that enables tracking of browser history navigation, including (reasonably) reliable detection of when the user can navigate backwards in a single-page application.
 
+`navigation-ponyfill` has zero runtime dependencies and will defer to the native `Navigation` on `window.navigation` when available.
+
 ## What's a ponyfill?
 
 A [ponyfill](https://github.com/sindresorhus/ponyfill) is like a polyfill, but instead of patching the global environment, it exports the functionality as a module.
@@ -18,6 +20,12 @@ It's a UI element seen in many applications (Instagram, Twitter/X, Bluesky, etc.
 
 ```bash
 npm install navigation-ponyfill
+```
+
+When using TypeScript we recommend installing the optional [`@types/dom-navigation`](https://www.npmjs.com/package/@types/dom-navigation) peer dependency as well.
+
+```bash
+npm install -D @types/dom-navigation
 ```
 
 ## Quick Start
