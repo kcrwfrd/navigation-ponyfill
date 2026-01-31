@@ -11,7 +11,7 @@
  * @example
  * import { navigation } from 'navigation-ponyfill'
  */
-import { createNavigation, type Navigation } from 'navigation-ponyfill/core'
+import { createNavigation } from 'navigation-ponyfill/core'
 
 declare global {
   var __NAVIGATION_PONYFILL_INSTANCE__:
@@ -33,11 +33,11 @@ if (
 
 const forcePonyfill = process.env.NEXT_PUBLIC_FORCE_PONYFILL === 'true'
 
-globalThis.__NAVIGATION_PONYFILL_INSTANCE__ = createNavigation({
+export const navigation = createNavigation({
   force: forcePonyfill,
 })
 
-export const navigation = globalThis.__NAVIGATION_PONYFILL_INSTANCE__
+globalThis.__NAVIGATION_PONYFILL_INSTANCE__ = navigation
 
 if (typeof window !== 'undefined') {
   console.log('forced ponyfill:', forcePonyfill)
