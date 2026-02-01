@@ -73,6 +73,56 @@ const navigation = createNavigation()
 
 No automatic patching—you control when and how the Navigation instance is created. Useful for testing or advanced use cases.
 
+## Supported APIs
+
+Based on the [Navigation API specification](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API). Most currently unsupported APIs are planned to be added.
+
+Some of the most interesting (and complex) APIs are in managing the navigation transition lifecycle. How well we can support these remains to be determined.
+
+I do hope to support `NavigateEvent.preventDefault()` to cancel navigations, and `NavigateEvent.intercept()` to handle them.
+
+|     | API                                        |
+| --- | :----------------------------------------- |
+|     | <h3>Navigation</h3>                        |
+| ✅  | `currentEntry`                             |
+| ✅  | `canGoBack`                                |
+| ✅  | `canGoForward`                             |
+| ✅  | `entries()`                                |
+| ✅  | `addEventListener()`                       |
+| ✅  | `removeEventListener()`                    |
+| ❌  | `oncurrententrychange`                     |
+| ❌  | `transition`                               |
+| ❌  | `activation`                               |
+| ❌  | `navigate()`                               |
+| ❌  | `reload()`                                 |
+| ❌  | `back()`                                   |
+| ❌  | `forward()`                                |
+| ❌  | `traverseTo()`                             |
+| ❌  | `updateCurrentEntry()`                     |
+|     | <h3>Navigation Events</h3>                 |
+| ✅  | `currententrychange`                       |
+| ❌  | `navigate`                                 |
+| ❌  | `navigatesuccess`                          |
+| ❌  | `navigateerror`                            |
+|     | <h3>NavigationHistoryEntry</h3>            |
+| ✅  | `id`                                       |
+| ✅  | `key`                                      |
+| ✅  | `index`                                    |
+| ✅  | `url`                                      |
+| ⚠️  | `sameDocument` - always `true`             |
+| ✅  | `getState()`                               |
+| ✅  | `dispose` event                            |
+| ❌  | `ondispose`                                |
+|     | <h3>NavigationCurrentEntryChangeEvent</h3> |
+| ✅  | `from`                                     |
+| ⚠️  | `navigationType` - `reload` not emitted    |
+|     | <h3>Not Implemented</h3>                   |
+| ❌  | `NavigateEvent`                            |
+| ❌  | `NavigationTransition`                     |
+| ❌  | `NavigationDestination`                    |
+| ❌  | `NavigationActivation`                     |
+| ❌  | `NavigationPrecommitController`            |
+
 ## API Reference
 
 ### `navigation`
@@ -240,56 +290,6 @@ Because of the use of `history.state` and `sessionStorage`, the ponyfill even wo
 ### State in History API calls must be an object or nullish
 
 Normally you can call `history.pushState(state, '', url)` with any serializable value for state (including boolean, string, array, etc.). Because the ponyfill merges your state with its own metadata, the state must be an object or nullish (`null`/`undefined`).
-
-## Supported APIs
-
-Based on the [Navigation API specification](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API). Most currently unsupported APIs are planned to be added.
-
-Some of the most interesting (and complex) APIs are in managing the navigation transition lifecycle. How well we can support these remains to be determined.
-
-I do hope to support `NavigateEvent.preventDefault()` to cancel navigations, and `NavigateEvent.intercept()` to handle them.
-
-|     | API                                        |
-| --- | :----------------------------------------- |
-|     | <h3>Navigation</h3>                        |
-| ✅  | `currentEntry`                             |
-| ✅  | `canGoBack`                                |
-| ✅  | `canGoForward`                             |
-| ✅  | `entries()`                                |
-| ✅  | `addEventListener()`                       |
-| ✅  | `removeEventListener()`                    |
-| ❌  | `oncurrententrychange`                     |
-| ❌  | `transition`                               |
-| ❌  | `activation`                               |
-| ❌  | `navigate()`                               |
-| ❌  | `reload()`                                 |
-| ❌  | `back()`                                   |
-| ❌  | `forward()`                                |
-| ❌  | `traverseTo()`                             |
-| ❌  | `updateCurrentEntry()`                     |
-|     | <h3>Navigation Events</h3>                 |
-| ✅  | `currententrychange`                       |
-| ❌  | `navigate`                                 |
-| ❌  | `navigatesuccess`                          |
-| ❌  | `navigateerror`                            |
-|     | <h3>NavigationHistoryEntry</h3>            |
-| ✅  | `id`                                       |
-| ✅  | `key`                                      |
-| ✅  | `index`                                    |
-| ✅  | `url`                                      |
-| ⚠️  | `sameDocument` - always `true`             |
-| ✅  | `getState()`                               |
-| ✅  | `dispose` event                            |
-| ❌  | `ondispose`                                |
-|     | <h3>NavigationCurrentEntryChangeEvent</h3> |
-| ✅  | `from`                                     |
-| ⚠️  | `navigationType` - `reload` not emitted    |
-|     | <h3>Not Implemented</h3>                   |
-| ❌  | `NavigateEvent`                            |
-| ❌  | `NavigationTransition`                     |
-| ❌  | `NavigationDestination`                    |
-| ❌  | `NavigationActivation`                     |
-| ❌  | `NavigationPrecommitController`            |
 
 ## Links
 
