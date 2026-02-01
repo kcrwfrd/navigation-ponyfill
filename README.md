@@ -249,64 +249,47 @@ Some of the most interesting (and complex) APIs are in managing the navigation t
 
 I do hope to support `NavigateEvent.preventDefault()` to cancel navigations, and `NavigateEvent.intercept()` to handle them.
 
-### Navigation
-
-|     | Property/Method         |
-| --- | ----------------------- |
-| ✅  | `currentEntry`          |
-| ✅  | `canGoBack`             |
-| ✅  | `canGoForward`          |
-| ✅  | `entries()`             |
-| ✅  | `addEventListener()`    |
-| ✅  | `removeEventListener()` |
-| ❌  | `oncurrententrychange`  |
-| ❌  | `transition`            |
-| ❌  | `activation`            |
-| ❌  | `navigate()`            |
-| ❌  | `reload()`              |
-| ❌  | `back()`                |
-| ❌  | `forward()`             |
-| ❌  | `traverseTo()`          |
-| ❌  | `updateCurrentEntry()`  |
-
-### Navigation Events
-
-|     | Event                |
-| --- | -------------------- |
-| ✅  | `currententrychange` |
-| ❌  | `navigate`           |
-| ❌  | `navigatesuccess`    |
-| ❌  | `navigateerror`      |
-
-### NavigationHistoryEntry
-
-|     | Property/Method                |
-| --- | ------------------------------ |
-| ✅  | `id`                           |
-| ✅  | `key`                          |
-| ✅  | `index`                        |
-| ✅  | `url`                          |
-| ⚠️  | `sameDocument` - always `true` |
-| ✅  | `getState()`                   |
-| ✅  | `dispose` event                |
-| ❌  | `ondispose`                    |
-
-### NavigationCurrentEntryChangeEvent
-
-|     | Property                                |
-| --- | --------------------------------------- |
-| ✅  | `from`                                  |
-| ⚠️  | `navigationType` - `reload` not emitted |
-
-### Not Implemented
-
-|     | Interface                       |
-| --- | ------------------------------- |
-| ❌  | `NavigateEvent`                 |
-| ❌  | `NavigationTransition`          |
-| ❌  | `NavigationDestination`         |
-| ❌  | `NavigationActivation`          |
-| ❌  | `NavigationPrecommitController` |
+|     | API                                        |
+| --- | :----------------------------------------- |
+|     | <h3>Navigation</h3>                        |
+| ✅  | `currentEntry`                             |
+| ✅  | `canGoBack`                                |
+| ✅  | `canGoForward`                             |
+| ✅  | `entries()`                                |
+| ✅  | `addEventListener()`                       |
+| ✅  | `removeEventListener()`                    |
+| ❌  | `oncurrententrychange`                     |
+| ❌  | `transition`                               |
+| ❌  | `activation`                               |
+| ❌  | `navigate()`                               |
+| ❌  | `reload()`                                 |
+| ❌  | `back()`                                   |
+| ❌  | `forward()`                                |
+| ❌  | `traverseTo()`                             |
+| ❌  | `updateCurrentEntry()`                     |
+|     | <h3>Navigation Events</h3>                 |
+| ✅  | `currententrychange`                       |
+| ❌  | `navigate`                                 |
+| ❌  | `navigatesuccess`                          |
+| ❌  | `navigateerror`                            |
+|     | <h3>NavigationHistoryEntry</h3>            |
+| ✅  | `id`                                       |
+| ✅  | `key`                                      |
+| ✅  | `index`                                    |
+| ✅  | `url`                                      |
+| ⚠️  | `sameDocument` - always `true`             |
+| ✅  | `getState()`                               |
+| ✅  | `dispose` event                            |
+| ❌  | `ondispose`                                |
+|     | <h3>NavigationCurrentEntryChangeEvent</h3> |
+| ✅  | `from`                                     |
+| ⚠️  | `navigationType` - `reload` not emitted    |
+|     | <h3>Not Implemented</h3>                   |
+| ❌  | `NavigateEvent`                            |
+| ❌  | `NavigationTransition`                     |
+| ❌  | `NavigationDestination`                    |
+| ❌  | `NavigationActivation`                     |
+| ❌  | `NavigationPrecommitController`            |
 
 ## Links
 
