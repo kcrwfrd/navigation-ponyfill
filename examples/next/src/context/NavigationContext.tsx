@@ -6,7 +6,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren,
 } from 'react'
-import { navigation, Navigation } from 'navigation-ponyfill'
+import { navigation } from '../lib/navigation'
 
 interface NavigationState {
   canGoBack: boolean

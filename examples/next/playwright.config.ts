@@ -68,5 +68,10 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    env: {
+      // Force ponyfill by default for e2e tests (can be overridden)
+      NEXT_PUBLIC_FORCE_PONYFILL:
+        process.env.NEXT_PUBLIC_FORCE_PONYFILL ?? 'true',
+    },
   },
 })

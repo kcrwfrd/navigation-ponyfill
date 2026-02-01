@@ -2,6 +2,8 @@
 
 A ponyfill (polyfill) for the browser [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API) that enables tracking of browser history navigation, including (reasonably) reliable detection of when the user can navigate backwards in a single-page application.
 
+`navigation-ponyfill` has zero runtime dependencies and will defer to the native `Navigation` on `window.navigation` when available.
+
 ## What's a ponyfill?
 
 A [ponyfill](https://github.com/sindresorhus/ponyfill) is like a polyfill, but instead of patching the global environment, it exports the functionality as a module.
@@ -18,6 +20,12 @@ It's a UI element seen in many applications (Instagram, Twitter/X, Bluesky, etc.
 
 ```bash
 npm install navigation-ponyfill
+```
+
+TypeScript projects require installation of [`@types/dom-navigation`](https://www.npmjs.com/package/@types/dom-navigation) as well.
+
+```bash
+npm install -D @types/dom-navigation
 ```
 
 ## Quick Start
@@ -110,12 +118,42 @@ type NavigationType = 'push' | 'replace' | 'traverse' | 'reload'
 - `traverse` — Browser back/forward navigation (popstate)
 - `reload` — Page reload (not currently emitted, included for alignment with native types)
 
-### `createNavigation(history?)`
+### `createNavigation(options?)`
 
 Factory function to create a `Navigation` instance.
 
 ```typescript
-function createNavigation(history?: History | HistoryShim): Navigation
+function createNavigation(
+  options?: CreateNavigationOptions,
+): Navigation | NativeNavigation
+function createNavigation(options: { force: true }): Navigation
+```
+
+#### `CreateNavigationOptions`
+
+```typescript
+type CreateNavigationOptions = {
+  force?: boolean
+  history?: History | HistoryShim
+}
+```
+
+- **`force`** — When `true`, always returns the ponyfill `Navigation` instance, even if the native Navigation API is available. Default: `false` (prefers native when available).
+- **`history`** — Custom `History` object to use. Defaults to `window.history` in browser environments, or a no-op `HistoryShim` during SSR.
+
+#### Examples
+
+```typescript
+import { createNavigation } from 'navigation-ponyfill/core'
+
+// Default: uses native Navigation API if available, otherwise ponyfill
+const navigation = createNavigation()
+
+// Force ponyfill even when native is available
+const navigation = createNavigation({ force: true })
+
+// Custom history object (useful for testing)
+const navigation = createNavigation({ history: customHistory })
 ```
 
 ## Framework Integration

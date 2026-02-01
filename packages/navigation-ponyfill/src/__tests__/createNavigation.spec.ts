@@ -28,15 +28,15 @@ describe('createNavigation', () => {
     })
 
     it('should return Navigation instance', () => {
-      const nav = createNavigation()
+      const nav = createNavigation({ force: true })
 
       expect(nav).toBeInstanceOf(Navigation)
 
-      nav.destroy()
+      destroy(nav)
     })
 
     it('should use window.history when window is defined', () => {
-      const nav = createNavigation()
+      const nav = createNavigation({ force: true })
 
       // Verify history was patched by checking pushState was replaced
       const originalPushState = MockHistory.prototype.pushState
@@ -65,23 +65,25 @@ describe('createNavigation', () => {
       consoleWarnSpy.mockRestore()
     })
 
-    it('should use HistoryShim when window is undefined', () => {
-      const nav = createNavigation()
-
-      expect(nav).toBeInstanceOf(Navigation)
-    })
-
     it('should not throw during SSR', () => {
-      expect(() => createNavigation()).not.toThrow()
+      let nav: ReturnType<typeof createNavigation> | undefined
+
+      expect(() => {
+        nav = createNavigation()
+      }).not.toThrow()
+
+      if (nav) {
+        destroy(nav)
+      }
     })
 
     it('should handle destroy() gracefully in SSR', () => {
-      const nav = createNavigation()
+      const nav = createNavigation({ force: true })
       expect(() => nav.destroy()).not.toThrow()
     })
 
     it('should warn about skipping sessionStorage operations', () => {
-      createNavigation()
+      const nav = createNavigation({ force: true })
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         'NavigationHistoryEntriesStack: sessionStorage is undefined, skipping load from sessionStorage',
@@ -89,13 +91,15 @@ describe('createNavigation', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         'NavigationHistoryEntriesStack: sessionStorage is undefined, skipping save to sessionStorage',
       )
+
+      nav.destroy()
     })
   })
 
   describe('custom history injection', () => {
     it('should accept custom History object', () => {
       const customHistory = new MockHistory()
-      const nav = createNavigation(customHistory)
+      const nav = createNavigation({ force: true, history: customHistory })
 
       expect(nav).toBeInstanceOf(Navigation)
 
@@ -108,16 +112,18 @@ describe('createNavigation', () => {
 
     it('should accept HistoryShim instance', () => {
       const shim = new HistoryShim()
-      const nav = createNavigation(shim)
+      const nav = createNavigation({ force: true, history: shim })
 
       expect(nav).toBeInstanceOf(Navigation)
+
+      nav.destroy()
     })
 
     it('should patch the provided history object', () => {
       const customHistory = new MockHistory()
       const originalPushState = customHistory.pushState
 
-      const nav = createNavigation(customHistory)
+      const nav = createNavigation({ force: true, history: customHistory })
 
       // After Navigation is created, pushState should be patched
       expect(customHistory.pushState).not.toBe(originalPushState)
@@ -128,4 +134,55 @@ describe('createNavigation', () => {
       expect(customHistory.pushState).toBe(originalPushState)
     })
   })
+
+  describe('force option', () => {
+    describe('when native Navigation is available', () => {
+      const mockNativeNavigation = { currentEntry: null }
+
+      beforeEach(() => {
+        vi.stubGlobal('history', new MockHistory())
+        vi.stubGlobal('navigation', mockNativeNavigation)
+      })
+
+      afterEach(() => {
+        vi.unstubAllGlobals()
+      })
+
+      it('should return native Navigation by default', () => {
+        const nav = createNavigation()
+        expect(nav).toBe(window.navigation)
+      })
+
+      it('should return polyfill when force: true', () => {
+        const nav = createNavigation({ force: true })
+        expect(nav).toBeInstanceOf(Navigation)
+        expect(nav).not.toBe(window.navigation)
+        nav.destroy()
+      })
+    })
+
+    describe('when native Navigation is not available', () => {
+      beforeEach(() => {
+        vi.stubGlobal('history', new MockHistory())
+        vi.stubGlobal('navigation', undefined)
+      })
+
+      afterEach(() => {
+        vi.unstubAllGlobals()
+      })
+
+      it('should return polyfill regardless of force option', () => {
+        const nav = createNavigation()
+        expect(nav).toBeInstanceOf(Navigation)
+
+        destroy(nav)
+      })
+    })
+  })
 })
+
+function destroy(nav: ReturnType<typeof createNavigation>) {
+  if ('destroy' in nav) {
+    nav.destroy()
+  }
+}

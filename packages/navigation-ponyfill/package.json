@@ -55,10 +55,14 @@
     "test:types": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/dom-navigation": "^1.0.6",
     "@types/jsdom": "^27.0.0",
     "@vitest/coverage-v8": "^4.0.16",
     "jsdom": "^27.4.0",
     "typescript": "^5",
     "vitest": "^4.0.16"
+  },
+  "peerDependencies": {
+    "@types/dom-navigation": "^1"
   }
 }
