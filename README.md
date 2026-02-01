@@ -97,10 +97,12 @@ Both share a common interface for the properties and methods below.
 #### Methods
 
 - **`entries(): NavigationHistoryEntry[]`** — Returns an array of all history entries in the current session.
+- **`addEventListener(type: 'currententrychange', listener: (event: NavigationCurrentEntryChangeEvent) => void, options?: AddEventListenerOptions): void`** — Adds an event listener for navigation events. Only `currententrychange` events are supported at this time.
+- **`removeEventListener(type: 'currententrychange', listener: (event: NavigationCurrentEntryChangeEvent) => void, options?: EventListenerOptions): void`** — Removes a previously added event listener.
 
 #### Events
 
-- **`currententrychange`** — Fired when navigation occurs via `pushState`, `replaceState`, hash changes, or browser back/forward.
+- **`currententrychange`** — Fired when navigation occurs via `pushState`, `replaceState`, hash changes, or history traversal.
 
 ### `Navigation`
 
@@ -220,7 +222,7 @@ history.state = {
 }
 ```
 
-It maintains a stack of `NavigationHistoryEntry` objects persisted to `sessionStorage`, allowing `entries()` and `currentEntry` to survive page reloads. It also listens for `popstate` events to track browser back/forward navigation and hash changes.
+It relates the `entryId` and `entryKey` to a stack of `NavigationHistoryEntry` objects persisted to `sessionStorage`, allowing `entries()` and `currentEntry` to survive page reloads. It also listens for `popstate` events to track browser back/forward navigation and hash changes.
 
 Because of the use of `history.state` and `sessionStorage`, the ponyfill even works in multi-page applications (MPAs).
 
