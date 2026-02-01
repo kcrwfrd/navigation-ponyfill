@@ -222,7 +222,7 @@ history.state = {
 }
 ```
 
-It relates the `entryId` and `entryKey` to a stack of `NavigationHistoryEntry` objects persisted to `sessionStorage`, allowing `entries()` and `currentEntry` to survive page reloads. It also listens for `popstate` events to track browser back/forward navigation and hash changes.
+It uses the `entryId` and `entryKey` in `history.state` to look up entries in a stack of `NavigationHistoryEntry` objects persisted to `sessionStorage`, allowing `entries()` and `currentEntry` to survive page reloads. It also listens for `popstate` events to track browser back/forward navigation and hash changes.
 
 Because of the use of `history.state` and `sessionStorage`, the ponyfill even works in multi-page applications (MPAs).
 
