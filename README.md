@@ -117,7 +117,7 @@ Event object passed to `currententrychange` listeners.
 ```typescript
 interface NavigationCurrentEntryChangeEvent extends Event {
   readonly from: NavigationHistoryEntry // Previous history entry
-  readonly navigationType: NavigationType // How the navigation occurred - reload not supported
+  readonly navigationType: NavigationType | null // How the navigation occurred - reload not supported
 }
 ```
 
@@ -138,7 +138,7 @@ interface NavigationHistoryEntry extends EventTarget {
 
 #### Events
 
-- **`dispose`** — Fired when the entry is removed from the history stack (e.g., when navigating to a new page after going back).
+- **`dispose`** — Fired when the entry is removed from the history stack (e.g., on replace, or when navigating to a new page after going back).
 
 ### `NavigationType`
 
