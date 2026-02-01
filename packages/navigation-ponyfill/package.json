@@ -64,10 +64,5 @@
   },
   "peerDependencies": {
     "@types/dom-navigation": "^1"
-  },
-  "peerDependenciesMeta": {
-    "@types/dom-navigation": {
-      "optional": true
-    }
   }
 }
