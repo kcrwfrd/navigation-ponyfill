@@ -241,6 +241,71 @@ Because of the use of `history.state` and `sessionStorage`, the ponyfill even wo
 
 Normally you can call `history.pushState(state, '', url)` with any serializable value for state (including boolean, string, array, etc.). Because the ponyfill merges your state with its own metadata, the state must be an object or nullish (`null`/`undefined`).
 
+## Supported APIs
+
+Based on the [Navigation API specification](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API). Most currently unsupported APIs are planned to be added.
+
+Some of the most interesting (and complex) APIs are in the route transition lifecycle. How well we can support these remains to be determined.
+
+I do hope to support `NavigateEvent.preventDefault()` to cancel navigations, and `NavigateEvent.intercept()` to handle them.
+
+### Navigation
+
+|     | Property/Method         |
+| --- | ----------------------- |
+| ✅  | `currentEntry`          |
+| ✅  | `canGoBack`             |
+| ✅  | `canGoForward`          |
+| ✅  | `entries()`             |
+| ✅  | `addEventListener()`    |
+| ✅  | `removeEventListener()` |
+| ❌  | `transition`            |
+| ❌  | `activation`            |
+| ❌  | `navigate()`            |
+| ❌  | `reload()`              |
+| ❌  | `back()`                |
+| ❌  | `forward()`             |
+| ❌  | `traverseTo()`          |
+| ❌  | `updateCurrentEntry()`  |
+
+### Navigation Events
+
+|     | Event                |
+| --- | -------------------- |
+| ✅  | `currententrychange` |
+| ❌  | `navigate`           |
+| ❌  | `navigatesuccess`    |
+| ❌  | `navigateerror`      |
+
+### NavigationHistoryEntry
+
+|     | Property/Method                |
+| --- | ------------------------------ |
+| ✅  | `id`                           |
+| ✅  | `key`                          |
+| ✅  | `index`                        |
+| ✅  | `url`                          |
+| ⚠️  | `sameDocument` - always `true` |
+| ✅  | `getState()`                   |
+| ✅  | `dispose` event                |
+
+### NavigationCurrentEntryChangeEvent
+
+|     | Property                                |
+| --- | --------------------------------------- |
+| ✅  | `from`                                  |
+| ✅  | `navigationType` - `reload` not emitted |
+
+### Not Implemented
+
+|     | Interface                       |
+| --- | ------------------------------- |
+| ❌  | `NavigateEvent`                 |
+| ❌  | `NavigationTransition`          |
+| ❌  | `NavigationDestination`         |
+| ❌  | `NavigationActivation`          |
+| ❌  | `NavigationPrecommitController` |
+
 ## Links
 
 - [License (MIT)](./LICENSE)
