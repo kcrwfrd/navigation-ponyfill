@@ -30,7 +30,7 @@ export function createNavigation(
       : new HistoryShim(),
   } = options
 
-  if (!force && typeof window !== 'undefined' && 'navigation' in window) {
+  if (!force && typeof window !== 'undefined' && window.navigation) {
     return window.navigation
   }
   return new Navigation(history)

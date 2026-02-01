@@ -164,6 +164,7 @@ describe('createNavigation', () => {
     describe('when native Navigation is not available', () => {
       beforeEach(() => {
         vi.stubGlobal('history', new MockHistory())
+        vi.stubGlobal('navigation', undefined)
       })
 
       afterEach(() => {
