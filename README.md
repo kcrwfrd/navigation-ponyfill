@@ -22,7 +22,7 @@ It's a UI element seen in many applications (Instagram, Twitter/X, Bluesky, etc.
 npm install navigation-ponyfill
 ```
 
-When using TypeScript we recommend installing the optional [`@types/dom-navigation`](https://www.npmjs.com/package/@types/dom-navigation) peer dependency as well.
+TypeScript projects require installation of [`@types/dom-navigation`](https://www.npmjs.com/package/@types/dom-navigation) as well.
 
 ```bash
 npm install -D @types/dom-navigation
