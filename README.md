@@ -38,11 +38,15 @@ if (navigation.canGoBack) {
   history.back()
 }
 
+// Access the current entry and history entries
+console.log('Current URL:', navigation.currentEntry?.url)
+console.log('History length:', navigation.entries().length)
+
 // Listen for navigation changes
 navigation.addEventListener('currententrychange', (event) => {
   console.log('Navigated:', event.navigationType) // 'push' | 'replace' | 'traverse'
   console.log('From:', event.from.url)
-  console.log('Can go back:', navigation.canGoBack)
+  console.log('To:', navigation.currentEntry?.url)
 })
 ```
 
@@ -56,13 +60,14 @@ The package provides two entry points:
 import { navigation } from 'navigation-ponyfill'
 ```
 
-Automatically patches `history.pushState` and `history.replaceState` on import. Use this for most applications.
+Returns the native `window.navigation` if available, otherwise patches `history.pushState` and `history.replaceState` and returns the ponyfill. Use this for most applications.
 
-### Core (side-effect-free)
+### Core (side-effect-free on import)
 
 ```typescript
 import { createNavigation, Navigation } from 'navigation-ponyfill/core'
 
+// No side effects until you call createNavigation()
 const navigation = createNavigation()
 ```
 
@@ -72,19 +77,38 @@ No automatic patching—you control when and how the Navigation instance is crea
 
 ### `navigation`
 
-A singleton `Navigation` instance (when using the default import).
+```typescript
+import { navigation } from 'navigation-ponyfill'
+```
+
+A singleton that provides the Navigation API. This can be either:
+
+- The **native `window.navigation`** if the browser supports the Navigation API
+- The **ponyfill `Navigation` instance** as a fallback
+
+Both share a common interface for the properties and methods below.
 
 #### Properties
 
+- **`currentEntry: NavigationHistoryEntry | null`** — The current history entry.
 - **`canGoBack: boolean`** — Whether the user can navigate backwards in this session.
+- **`canGoForward: boolean`** — Whether the user can navigate forwards in this session.
 
 #### Methods
 
-- **`destroy(): void`** — Restores original history methods and removes event listeners.
+- **`entries(): NavigationHistoryEntry[]`** — Returns an array of all history entries in the current session.
 
 #### Events
 
-- **`currententrychange`** — Fired when navigation occurs via `pushState`, `replaceState`, or browser back/forward.
+- **`currententrychange`** — Fired when navigation occurs via `pushState`, `replaceState`, hash changes, or browser back/forward.
+
+### `Navigation`
+
+The ponyfill implementation, available via `createNavigation({ force: true })` or when the native API is unavailable.
+
+#### Additional Methods
+
+- **`destroy(): void`** — Restores original history methods and removes event listeners. Use this for cleanup in tests or when the ponyfill is no longer needed.
 
 ### `NavigationCurrentEntryChangeEvent`
 
@@ -93,7 +117,7 @@ Event object passed to `currententrychange` listeners.
 ```typescript
 interface NavigationCurrentEntryChangeEvent extends Event {
   readonly from: NavigationHistoryEntry // Previous history entry
-  readonly navigationType: NavigationType // How the navigation occurred - reload not supported
+  readonly navigationType: NavigationType | null // How the navigation occurred - reload not supported
 }
 ```
 
@@ -102,10 +126,19 @@ interface NavigationCurrentEntryChangeEvent extends Event {
 Represents a history entry.
 
 ```typescript
-interface NavigationHistoryEntry {
-  readonly url: string | null
+interface NavigationHistoryEntry extends EventTarget {
+  readonly id: string // Unique identifier for this entry
+  readonly key: string // Stable key that persists across replace operations
+  readonly index: number // Position in the entries list (-1 if disposed)
+  readonly url: string | null // Full URL of the entry
+  readonly sameDocument: boolean // Whether this was a same-document navigation
+  getState(): unknown // Returns a clone of the state for this entry
 }
 ```
+
+#### Events
+
+- **`dispose`** — Fired when the entry is removed from the history stack (e.g., on replace, or when navigating to a new page after going back).
 
 ### `NavigationType`
 
@@ -129,6 +162,8 @@ function createNavigation(
 function createNavigation(options: { force: true }): Navigation
 ```
 
+By default, returns the native `window.navigation` if available, otherwise returns the ponyfill. Use `force: true` to always get the ponyfill instance.
+
 #### `CreateNavigationOptions`
 
 ```typescript
@@ -149,11 +184,16 @@ import { createNavigation } from 'navigation-ponyfill/core'
 // Default: uses native Navigation API if available, otherwise ponyfill
 const navigation = createNavigation()
 
-// Force ponyfill even when native is available
+// Force ponyfill even when native is available (useful for testing)
 const navigation = createNavigation({ force: true })
 
+// Type narrowing for ponyfill-specific methods
+if ('destroy' in navigation) {
+  navigation.destroy()
+}
+
 // Custom history object (useful for testing)
-const navigation = createNavigation({ history: customHistory })
+const navigation = createNavigation({ force: true, history: customHistory })
 ```
 
 ## Framework Integration
@@ -174,33 +214,28 @@ The ponyfill monkey-patches [`history.pushState`](https://developer.mozilla.org/
 history.state = {
   ...yourState,
   __NAVIGATION_PONYFILL: {
-    canGoBack: true,
-    previousPath: '/previous-page',
+    entryId: 'abc123',
+    entryKey: 'def456',
   },
 }
 ```
 
-It also listens for `popstate` events to track browser back/forward navigation.
+It maintains a stack of `NavigationHistoryEntry` objects persisted to `sessionStorage`, allowing `entries()` and `currentEntry` to survive page reloads. It also listens for `popstate` events to track browser back/forward navigation and hash changes.
+
+Because of the use of `history.state` and `sessionStorage`, the ponyfill even works in multi-page applications (MPAs).
 
 ## Caveats
 
-### Only tracks SPA-style navigations
+### Unsupported APIs
 
-The ponyfill only works for `history.pushState`, `history.replaceState`, and `popstate` (browser back/forward) driven navigations.
+- `NavigationCurrentEntryChangeEvent` with `navigationType: 'reload'` - this is impossible for us to detect.
+- `NavigationHistoryEntry.sameDocument` does not work -- we always set it to `true` to maintain the same type signature with native API. It is impossible for us to determine in the ponyfill if an entry is from the same document (page) or not.
 
-It does **not** track:
+### Multi-Page Applications (MPAs)
 
-- Normal `<a href="./foobar">` link navigations
-- Calls to `location.assign()` or `location.replace()`, which trigger cross-document (rather than same-document, SPA-style) navigations
-- `location.href = './foobar'` navigations
-- Form submissions `<form action="./submit">` (remember those?)
-- Hash changes (`<a href="#foo">`, `location.hash = '#foo'`) - TODO
+- While the ponyfill works for MPAs, _it must be loaded on every page_. If it's not, its state might become corrupted. This is untested.
 
-I am hopeful that support for these cases can be improved in the future with the addition of polyfilling for the `entries()` method and `currentEntry` property.
-
-Additionally, it does not support `reload` in `NavigationCurrentEntryChangeEvent` from reload navigations. However, `canGoBack` should work since `history.state` is preserved on reload.
-
-### State must be an object or nullish
+### State in History API calls must be an object or nullish
 
 Normally you can call `history.pushState(state, '', url)` with any serializable value for state (including boolean, string, array, etc.). Because the ponyfill merges your state with its own metadata, the state must be an object or nullish (`null`/`undefined`).
 
