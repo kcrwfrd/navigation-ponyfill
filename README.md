@@ -245,7 +245,7 @@ Normally you can call `history.pushState(state, '', url)` with any serializable 
 
 Based on the [Navigation API specification](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API). Most currently unsupported APIs are planned to be added.
 
-Some of the most interesting (and complex) APIs are in the route transition lifecycle. How well we can support these remains to be determined.
+Some of the most interesting (and complex) APIs are in managing the navigation transition lifecycle. How well we can support these remains to be determined.
 
 I do hope to support `NavigateEvent.preventDefault()` to cancel navigations, and `NavigateEvent.intercept()` to handle them.
 
@@ -259,6 +259,7 @@ I do hope to support `NavigateEvent.preventDefault()` to cancel navigations, and
 | ✅  | `entries()`             |
 | ✅  | `addEventListener()`    |
 | ✅  | `removeEventListener()` |
+| ❌  | `oncurrententrychange`  |
 | ❌  | `transition`            |
 | ❌  | `activation`            |
 | ❌  | `navigate()`            |
@@ -288,13 +289,14 @@ I do hope to support `NavigateEvent.preventDefault()` to cancel navigations, and
 | ⚠️  | `sameDocument` - always `true` |
 | ✅  | `getState()`                   |
 | ✅  | `dispose` event                |
+| ❌  | `ondispose`                    |
 
 ### NavigationCurrentEntryChangeEvent
 
 |     | Property                                |
 | --- | --------------------------------------- |
 | ✅  | `from`                                  |
-| ✅  | `navigationType` - `reload` not emitted |
+| ⚠️  | `navigationType` - `reload` not emitted |
 
 ### Not Implemented
 
