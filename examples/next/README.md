@@ -91,3 +91,41 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the example in action.
+
+### `NEXT_PUBLIC_FORCE_PONYFILL`
+
+By default, the ponyfill defers to the native Navigation API when available. Set this environment variable to `true` to force the ponyfill even in browsers that support the native API:
+
+```bash
+# .env.local
+NEXT_PUBLIC_FORCE_PONYFILL=true
+```
+
+This is useful for testing ponyfill behavior in modern browsers or ensuring consistent behavior across all browsers during development. See [src/lib/navigation.ts](src/lib/navigation.ts) for the implementation.
+
+## E2E Tests
+
+This example includes Playwright e2e tests to verify navigation behavior.
+
+```bash
+# Run all e2e tests
+npm run test:e2e
+
+# Run with UI mode (for debugging)
+npm run test:e2e:ui
+
+# Run headed (visible browser)
+npm run test:e2e:headed
+```
+
+### Testing with ponyfill vs deferral to native Navigation API
+
+By default, e2e tests run with `NEXT_PUBLIC_FORCE_PONYFILL=true` to test the ponyfill implementation. You can override this to test against the browser's native Navigation API:
+
+```bash
+# Test with ponyfill forced (default)
+npm run test:e2e
+
+# Test with deferral to native Navigation API
+NEXT_PUBLIC_FORCE_PONYFILL=false npm run test:e2e
+```
