@@ -3,7 +3,7 @@
 import {
   navigation,
   type NavigationCurrentEntryChangeEvent,
-} from 'navigation-ponyfill'
+} from '../lib/navigation'
 import { useEffect, type PropsWithChildren } from 'react'
 
 export const NavigationEventListener = ({ children }: PropsWithChildren) => {
