@@ -73,6 +73,56 @@ const navigation = createNavigation()
 
 No automatic patching—you control when and how the Navigation instance is created. Useful for testing or advanced use cases.
 
+## Supported APIs
+
+Based on the [Navigation API specification](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API). Most currently unsupported APIs are planned to be added.
+
+Some of the most interesting (and complex) APIs are in managing the navigation transition lifecycle. How well we can support these remains to be determined.
+
+I do hope to support `NavigateEvent.preventDefault()` to cancel navigations, and `NavigateEvent.intercept()` to handle them.
+
+|     | API                                        |
+| --- | :----------------------------------------- |
+|     | <h3>Navigation</h3>                        |
+| ✅  | `currentEntry`                             |
+| ✅  | `canGoBack`                                |
+| ✅  | `canGoForward`                             |
+| ✅  | `entries()`                                |
+| ✅  | `addEventListener()`                       |
+| ✅  | `removeEventListener()`                    |
+| ❌  | `oncurrententrychange`                     |
+| ❌  | `transition`                               |
+| ❌  | `activation`                               |
+| ❌  | `navigate()`                               |
+| ❌  | `reload()`                                 |
+| ❌  | `back()`                                   |
+| ❌  | `forward()`                                |
+| ❌  | `traverseTo()`                             |
+| ❌  | `updateCurrentEntry()`                     |
+|     | <h3>Navigation Events</h3>                 |
+| ✅  | `currententrychange`                       |
+| ❌  | `navigate`                                 |
+| ❌  | `navigatesuccess`                          |
+| ❌  | `navigateerror`                            |
+|     | <h3>NavigationHistoryEntry</h3>            |
+| ✅  | `id`                                       |
+| ✅  | `key`                                      |
+| ✅  | `index`                                    |
+| ✅  | `url`                                      |
+| ⚠️  | `sameDocument` - always `true`             |
+| ✅  | `getState()`                               |
+| ✅  | `dispose` event                            |
+| ❌  | `ondispose`                                |
+|     | <h3>NavigationCurrentEntryChangeEvent</h3> |
+| ✅  | `from`                                     |
+| ⚠️  | `navigationType` - `reload` not emitted    |
+|     | <h3>Not Implemented</h3>                   |
+| ❌  | `NavigateEvent`                            |
+| ❌  | `NavigationTransition`                     |
+| ❌  | `NavigationDestination`                    |
+| ❌  | `NavigationActivation`                     |
+| ❌  | `NavigationPrecommitController`            |
+
 ## API Reference
 
 ### `navigation`
@@ -97,10 +147,12 @@ Both share a common interface for the properties and methods below.
 #### Methods
 
 - **`entries(): NavigationHistoryEntry[]`** — Returns an array of all history entries in the current session.
+- **`addEventListener(type: 'currententrychange', listener: (event: NavigationCurrentEntryChangeEvent) => void, options?: AddEventListenerOptions): void`** — Adds an event listener for navigation events. Only `currententrychange` events are supported at this time.
+- **`removeEventListener(type: 'currententrychange', listener: (event: NavigationCurrentEntryChangeEvent) => void, options?: EventListenerOptions): void`** — Removes a previously added event listener.
 
 #### Events
 
-- **`currententrychange`** — Fired when navigation occurs via `pushState`, `replaceState`, hash changes, or browser back/forward.
+- **`currententrychange`** — Fired when navigation occurs via `pushState`, `replaceState`, hash changes, or history traversal.
 
 ### `Navigation`
 
@@ -220,7 +272,7 @@ history.state = {
 }
 ```
 
-It maintains a stack of `NavigationHistoryEntry` objects persisted to `sessionStorage`, allowing `entries()` and `currentEntry` to survive page reloads. It also listens for `popstate` events to track browser back/forward navigation and hash changes.
+It uses the `entryId` and `entryKey` in `history.state` to look up entries in a stack of `NavigationHistoryEntry` objects persisted to `sessionStorage`, allowing `entries()` and `currentEntry` to survive page reloads. It also listens for `popstate` events to track browser back/forward navigation and hash changes.
 
 Because of the use of `history.state` and `sessionStorage`, the ponyfill even works in multi-page applications (MPAs).
 

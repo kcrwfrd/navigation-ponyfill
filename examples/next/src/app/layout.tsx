@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/Header'
+import { NavigationEventListener } from '@/components/NavigationEventListener'
 import { NavigationProvider } from '@/context/NavigationContext'
 
 const geistSans = Geist({
@@ -30,10 +31,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-          <NavigationProvider>
-            <Header />
-            {children}
-          </NavigationProvider>
+          <NavigationEventListener>
+            <NavigationProvider>
+              <Header />
+              {children}
+            </NavigationProvider>
+          </NavigationEventListener>
         </div>
       </body>
     </html>

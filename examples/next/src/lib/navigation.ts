@@ -44,3 +44,5 @@ if (typeof window !== 'undefined') {
   console.log('navigation deferred:', navigation === window.navigation)
   console.log('navigation instance:', navigation)
 }
+
+export * from 'navigation-ponyfill/core'
