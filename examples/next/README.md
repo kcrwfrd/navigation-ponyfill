@@ -1,6 +1,6 @@
 # Next.js + navigation-ponyfill
 
-This example demonstrates how to integrate [navigation-ponyfill](../../) with a Next.js application to implement reliable back button behavior.
+This example demonstrates how to integrate [navigation-ponyfill](../../) with Next.js.
 
 ## Setup
 
@@ -17,10 +17,145 @@ This file is automatically loaded by Next.js on the client side, ensuring the po
 
 The recommended pattern uses `useSyncExternalStore` to subscribe to `currententrychange` events. This will enable your components to re-render when your navigation state changes.
 
-See the full implementation:
+```typescript
+'use client'
 
-- [src/context/NavigationContext.tsx](src/context/NavigationContext.tsx) - Context provider with `useSyncExternalStore`
-- [src/components/BackButton.tsx](src/components/BackButton.tsx) - Back button example
+import {
+  createContext,
+  useContext,
+  useSyncExternalStore,
+  type PropsWithChildren,
+} from 'react'
+import { navigation } from 'navigation-ponyfill'
+
+interface NavigationState {
+  canGoBack: boolean
+  /**
+   * `previousPath` is useful because we can render a back button as a link,
+   * so that user can open it in a new tab if they want to.
+   */
+  previousPath: string | null
+  /**
+   * Whether the navigation state has been hydrated on the client.
+   * This is `false` during SSR and becomes `true` once the client has initialized.
+   * It allows us to not render UI until the client is ready, so we can avoid flickering.
+   */
+  ready: boolean
+}
+export const NavigationContext = createContext<NavigationState | null>(null)
+
+export const NavigationProvider = ({ children }: PropsWithChildren) => {
+  const state = useSyncNavigationState()
+  return <NavigationContext value={state}>{children}</NavigationContext>
+}
+
+export const useNavigation = () => {
+  const context = useContext(NavigationContext)
+  if (!context) {
+    throw new Error('useNavigation must be used within a NavigationProvider')
+  }
+  return context
+}
+
+const subscribe = (callback: () => void) => {
+  const fn = () => queueMicrotask(callback)
+
+  navigation.addEventListener('currententrychange', fn)
+
+  return () => {
+    navigation.removeEventListener('currententrychange', fn)
+  }
+}
+
+const SERVER_SNAPSHOT: NavigationState = {
+  canGoBack: false,
+  previousPath: null,
+  ready: false,
+}
+
+let cachedSnapshot: NavigationState | null = null
+let cachedEntryId: string | null = null
+
+const getSnapshot = (): NavigationState => {
+  const entryId = navigation.currentEntry?.id
+
+  if (entryId && entryId !== cachedEntryId) {
+    cachedEntryId = entryId
+
+    const entries = navigation.entries()
+    const prevIndex = (navigation.currentEntry?.index ?? 0) - 1
+    const prevEntry = entries[prevIndex] ? entries[prevIndex] : null
+
+    let url: URL | null = null
+
+    try {
+      if (prevEntry?.url) {
+        url = new URL(prevEntry.url)
+      }
+    } catch (error) {
+      console.error(`Failed to parse previous URL: ${prevEntry?.url}`)
+      console.error(error)
+      url = null
+    }
+
+    cachedSnapshot = {
+      canGoBack: navigation.canGoBack,
+      previousPath: url ? url.pathname + url.search + url.hash : null,
+      ready: true,
+    }
+  }
+
+  return cachedSnapshot ?? SERVER_SNAPSHOT
+}
+
+const getServerSnapshot = (): NavigationState => SERVER_SNAPSHOT
+
+function useSyncNavigationState(): NavigationState {
+  return useSyncExternalStore<NavigationState>(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  )
+}
+```
+
+And then you can use it in your components like this:
+
+```typescript
+'use client'
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+import { useNavigation } from '@/context/NavigationContext'
+
+export function BackButton({ fallbackUrl }: { fallbackUrl: string }) {
+  const { canGoBack, previousPath } = useNavigation()
+  const router = useRouter()
+
+  return (
+    <Link
+      href={previousPath ?? fallbackUrl}
+      onClick={(event) => {
+        event.preventDefault()
+
+        if (canGoBack) {
+          router.back()
+        } else {
+          router.replace(fallbackUrl)
+        }
+      }}
+    >
+      Back
+    </Link>
+  )
+}
+```
+
+See the full example implementation:
+
+- [`src/context/NavigationContext.tsx`](src/context/NavigationContext.tsx)
+- [`src/components/BackButton.tsx`](src/components/BackButton.tsx)
 
 Some day in the future, you will be able to remove the polyfill and continue using this code with the native Navigation API.
 
@@ -101,7 +236,7 @@ By default, the ponyfill defers to the native Navigation API when available. Set
 NEXT_PUBLIC_FORCE_PONYFILL=true
 ```
 
-This is useful for testing ponyfill behavior in modern browsers or ensuring consistent behavior across all browsers during development. See [src/lib/navigation.ts](src/lib/navigation.ts) for the implementation.
+This is useful for testing ponyfill behavior in modern browsers or ensuring consistent behavior across all browsers during development. See [`src/lib/navigation.ts`](src/lib/navigation.ts) for the implementation.
 
 ## E2E Tests
 
@@ -120,7 +255,7 @@ npm run test:e2e:headed
 
 ### Testing with ponyfill vs deferral to native Navigation API
 
-By default, e2e tests run with `NEXT_PUBLIC_FORCE_PONYFILL=true` to test the ponyfill implementation. You can override this to test against the browser's native Navigation API:
+By default, e2e tests run with `NEXT_PUBLIC_FORCE_PONYFILL=true` to test the ponyfill implementation. You can override this to defer to the browser's native Navigation API if available:
 
 ```bash
 # Test with ponyfill forced (default)

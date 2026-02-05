@@ -102,7 +102,7 @@ const getSnapshot = (): NavigationState => {
     }
   }
 
-  return cachedSnapshot!
+  return cachedSnapshot ?? SERVER_SNAPSHOT
 }
 
 const getServerSnapshot = (): NavigationState => SERVER_SNAPSHOT
