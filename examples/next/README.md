@@ -119,7 +119,7 @@ function useSyncNavigationState(): NavigationState {
 }
 ```
 
-And then you can use it in your components like this
+And then you can use it in your components like this:
 
 ```typescript
 'use client'
