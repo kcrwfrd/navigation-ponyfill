@@ -2,6 +2,8 @@
 
 This example demonstrates how to integrate [navigation-ponyfill](../../) with Next.js.
 
+**Live demo:** [navigation-ponyfill-example-next.vercel.app](https://navigation-ponyfill-example-next.vercel.app/)
+
 ## Setup
 
 Import the polyfill in your [`instrumentation-client.js`](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client) file:

@@ -4,6 +4,8 @@ A ponyfill (polyfill) for the browser [Navigation API](https://developer.mozilla
 
 `navigation-ponyfill` has zero runtime dependencies and will defer to the native `Navigation` on `window.navigation` when available.
 
+**Live demo:** [navigation-ponyfill-example-next.vercel.app](https://navigation-ponyfill-example-next.vercel.app/)
+
 ## What's a ponyfill?
 
 A [ponyfill](https://github.com/sindresorhus/ponyfill) is like a polyfill, but instead of patching the global environment, it exports the functionality as a module.
