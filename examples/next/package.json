@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm run build --prefix ../../packages/navigation-ponyfill",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
