@@ -14,9 +14,11 @@ Unfortunately, `navigation-ponyfill` is not entirely side-effect free due to [ho
 
 ## Why?
 
-My most immediate concern when implementing this ponyfill was to support "back" buttons in single-page applications. It is desirable to use the `history.back()` method in such cases so that the behavior is in-line with the browser's back button (and swiping on mobile). However, you don't want to bounce the user off your application if they came from elsewhere. In this case, it is preferable to navigate to a fallback URL instead.
+My most immediate concern when implementing this ponyfill was to support "back" buttons in single-page applications. It is desirable to use the `history.back()` method in such cases so that the navigation is in-sync with the browser's history stack, and consistent with the browser's back button or swipe gesture on mobile.
 
-It's a UI element seen in many applications (Instagram, Twitter/X, Bluesky, etc.) and while it's a slam-dunk to implement with `Navigation`, it's a minefield of edge-cases and tricky to get right using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API). It is easiest to implement if you can just pass the previous URL with `history.pushState({ previousUrl }, '', newUrl)`, but that's not something we can readily hook into in all frameworks (looking at you, Next.js).
+However, you don't want to bounce the user off your application if they came from elsewhere. In this case, it is preferable to navigate to a fallback URL instead.
+
+It's a UI pattern seen in many applications (Instagram, Twitter/X, Bluesky, etc.) and while it's a slam-dunk to implement with `Navigation`, it's a minefield of edge-cases and tricky to get right using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API).
 
 ## Installation
 
